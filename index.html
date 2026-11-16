@@ -98,9 +98,9 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <section class="card wide">
 <h2>Buscar por referencia antigua</h2>
 <div class="field"><label for="oldRefSearch">Referencia antigua (coincidencia exacta)</label>
-<input id="oldRefSearch" type="search" placeholder="Introduce la referencia antigua completa...">
+<input id="oldRefSearch" type="search" placeholder="Escribe la referencia antigua completa...">
 </div>
-<div class="muted">Busca una coincidencia exacta exclusivamente en la tercera columna del TXT. Pulsa un resultado para cargar arriba la referencia actual y sus observaciones. Esta consulta no crea ni modifica registros.</div>
+<div class="muted">Busca en la tercera columna del TXT y muestra todas las referencias actuales coincidentes. Esta consulta no crea ni modifica registros.</div>
 <div id="oldRefResults" class="records" style="margin-top:12px"><div class="empty">Carga el catálogo TXT y escribe una referencia antigua para buscar.</div></div>
 </section>
 <section class="card">
@@ -322,13 +322,15 @@ function renderOldReferenceSearch(){
  const container=$('oldRefResults');
  container.innerHTML='';
  if(!catalogRows.length){container.innerHTML='<div class="empty">Carga primero el catálogo TXT.</div>';return;}
- if(!query){container.innerHTML='<div class="empty">Introduce una referencia antigua completa para buscar.</div>';return;}
+ if(!query){container.innerHTML='<div class="empty">Escribe la referencia antigua completa para buscar.</div>';return;}
  const matches=catalogRows.filter(row=>normalizeReference(row.referenciaAntigua)===query);
  if(!matches.length){container.innerHTML='<div class="empty">No se encontraron coincidencias.</div>';return;}
  const heading=document.createElement('div');heading.className='muted';heading.textContent=`${matches.length} coincidencia(s) encontrada(s)`;container.append(heading);
  matches.forEach(row=>{
-  const item=document.createElement('div');item.className='record';
-  item.style.cursor='pointer';item.setAttribute('role','button');item.setAttribute('tabindex','0');
+  const item=document.createElement('div');item.className='record';item.tabIndex=0;item.setAttribute('role','button');item.setAttribute('aria-label','Seleccionar '+(row.referenciaActual||'referencia actual'));
+  item.style.cursor='pointer';
+  item.addEventListener('click',()=>selectCatalogReference(row));
+  item.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCatalogReference(row);}});
   const current=document.createElement('strong');current.textContent=row.referenciaActual||'(Sin referencia actual)';
   const old=document.createElement('small');old.textContent='Referencia antigua: '+row.referenciaAntigua;
   item.append(current,old);
@@ -336,9 +338,7 @@ function renderOldReferenceSearch(){
   const choose=document.createElement('button');
   choose.type='button';choose.className='secondary';choose.textContent='Seleccionar referencia';
   choose.style.width='100%';
-  choose.onclick=()=>selectCatalogReference(row);
-  item.onclick=(event)=>{if(event.target!==choose)selectCatalogReference(row)};
-  item.onkeydown=(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCatalogReference(row)}};
+  choose.onclick=event=>{event.stopPropagation();selectCatalogReference(row)};
   item.append(choose);
   container.append(item);
  });
@@ -375,7 +375,7 @@ $('catalogFile').onchange=async e=>{
    if(cols.length<3)return;
    const current=(cols[0]||'').trim(), note=(cols[1]||'').trim(), oldReference=(cols[2]||'').trim();
    const key=normalizeReference(current);
-   if(/^(REFERENCIA_ACTUAL|REFERENCIA ACTUAL|REFERENCIA|REFERENCE|CODIGO|CÓDIGO)$/.test(key)&&!rows.length)return;
+   if(!rows.length && /^(REFERENCIA|REFERENCIA_ACTUAL|REFERENCIA ACTUAL)$/.test(key) && /^(DESCRIPCION|DESCRIPCIÓN|OBSERVACIONES|OBSERVACION)$/.test(normalizeReference(note)) && /^(REFERENCIAANTIGUA1|REFERENCIA ANTIGUA 1|REFERENCIAANTIGUA|REFERENCIA ANTIGUA)$/.test(normalizeReference(oldReference)))return;
    if(!key)return;
    const row={referenciaActual:current,observacion:note,referenciaAntigua:oldReference};
    rows.push(row);
@@ -394,7 +394,7 @@ $('catalogFile').onchange=async e=>{
 try{
  const savedCatalog=JSON.parse(localStorage.getItem('armarios_gps_catalog_v1')||'[]');
  if(Array.isArray(savedCatalog)&&savedCatalog.length){
-  catalogRows=savedCatalog;
+  catalogRows=savedCatalog.filter(row=>row && normalizeReference(row.referenciaActual)!=='REFERENCIA' && normalizeReference(row.referenciaAntigua)!=='REFERENCIAANTIGUA1');
   catalogRows.forEach(row=>{
    const key=normalizeReference(row.referenciaActual);
    if(key&&!observationCatalog.has(key))observationCatalog.set(key,{observacion:row.observacion||'',referenciaAntigua:row.referenciaAntigua||''});
