@@ -1,15 +1,26 @@
-REGISTRO DE ARMARIOS ELÉCTRICOS · VERSIÓN 5
+REGISTRO DE ARMARIOS ELÉCTRICOS GPS · VERSIÓN 2.2
 
-Contenido:
-- index.html: aplicación web actualizada a partir del archivo facilitado.
+CONTENIDO
+- index.html: aplicación principal.
+- manifest.webmanifest: configuración de instalación PWA.
+- sw.js: Service Worker y caché para funcionamiento sin conexión.
+- icon-192.png e icon-512.png: iconos de la aplicación.
 
-Instalación:
-1. Descomprime el ZIP.
-2. Abre index.html en un navegador compatible.
-3. Para usar GPS, abre la aplicación desde un contexto seguro (HTTPS o localhost) y concede permiso de ubicación.
+INSTALACIÓN / ACTUALIZACIÓN
+1. Sustituye el contenido de la raíz del repositorio por todos los archivos de este paquete.
+2. Confirma los cambios en GitHub y espera a que se publique la página.
+3. Abre la aplicación desde HTTPS. La aplicación comprobará y registrará el Service Worker.
+4. Si ya estaba instalada, utiliza «Comprobar actualizaciones» o cierra y vuelve a abrir la aplicación.
 
-Notas:
-- Se conserva la clave localStorage existente "armarios_gps_v1", por lo que los registros guardados en el mismo navegador/dispositivo siguen siendo accesibles.
-- El catálogo TXT se guarda localmente después de cargarlo, para recuperarlo en próximas aperturas en el mismo navegador/dispositivo.
-- El archivo de origen facilitado era un HTML único. No incluía manifiesto ni Service Worker; por eso este paquete no se presenta como una PWA instalable/offline completa.
-- Exporta una copia JSON antes de sustituir o limpiar datos del navegador.
+MEJORAS
+- Medición GPS seleccionable de 30, 60, 90 o 120 segundos, conservando la lectura de mayor precisión.
+- Detención manual de la medición y avisos de estado.
+- Búsqueda parcial independiente por referencia antigua en la tercera columna del TXT.
+- Catálogo TXT persistente en el navegador.
+- Exportación Excel con autofiltro en las ocho columnas y exportación CSV.
+- Copia JSON que incluye registros y catálogo; admite también copias JSON antiguas que contienen solo una lista de registros.
+- Importación con control de identificadores duplicados.
+- Conservación de la clave de registros localStorage «armarios_gps_v1» y de la clave de catálogo «armarios_gps_catalog_v1».
+
+IMPORTANTE
+Los datos se almacenan localmente en cada navegador/dispositivo. Exporta una copia JSON antes de actualizar o cambiar de dispositivo. El GPS requiere HTTPS (o localhost) y permiso de ubicación. La primera carga necesita conexión para descargar los recursos de la PWA.

@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#123b56">
 <meta name="description" content="Registro geolocalizado de armarios eléctricos">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Registro de armarios eléctricos</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172633;background:#f2f5f7}
@@ -119,6 +123,11 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div id="records" class="records"><div class="empty">Todavía no hay registros.</div></div>
 </section>
 </main>
+<section class="card wide" aria-label="Información de la aplicación">
+<h2>Información y actualizaciones</h2>
+<div class="row"><div><strong>Registro de armarios GPS · Versión 2.2</strong><div class="muted">Actualización: 16/11/2026</div></div><button class="secondary" id="updateBtn" type="button">Comprobar actualizaciones</button></div>
+<div class="status" id="appStatus" style="margin-top:10px">Aplicación lista.</div>
+</section>
 <footer>Registro local · GPS del dispositivo · No se envían datos a ningún servidor</footer>
 <script>
 'use strict';
@@ -126,8 +135,8 @@ const KEY='armarios_gps_v1';
 let records=load();
 let currentPosition=null;
 const $=id=>document.getElementById(id);
-function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
-function persist(){localStorage.setItem(KEY,JSON.stringify(records));render()}
+function load(){try{const data=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(data)?data.filter(r=>r&&typeof r.referencia==='string'&&r.timestamp):[]}catch(e){return []}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(records));render()}catch(e){alert('No se pudieron guardar los datos. Puede que el almacenamiento del navegador esté lleno. Exporta una copia y libera espacio.')}}
 function render(){
  $('count').textContent=records.length;
  const q=$('filter').value.trim().toLowerCase();
@@ -140,7 +149,7 @@ function render(){
   const floor=document.createElement('small');floor.textContent='Planta: '+(r.planta||'No indicada');
   const oldRef=document.createElement('small');oldRef.textContent='Referencia antigua: '+(r.referenciaAntigua||'No indicada');
   const time=document.createElement('small');time.textContent=new Date(r.timestamp).toLocaleString('es-ES');
-  const gps=document.createElement('small');gps.textContent=r.lat!=null?`${r.lat.toFixed(7)}, ${r.lon.toFixed(7)} · ±${Math.round(r.precision)} m`:'Sin GPS';
+  const gps=document.createElement('small');gps.textContent=r.lat!=null?`${Number(r.lat).toFixed(7)}, ${Number(r.lon).toFixed(7)} · ±${(Number.isFinite(Number(r.precision))?Math.round(Number(r.precision)):'?')} m`:'Sin GPS';
   const row=document.createElement('div');row.className='row';
   if(r.lat!=null){const a=document.createElement('a');a.href=`https://www.google.com/maps?q=${r.lat},${r.lon}`;a.target='_blank';a.rel='noopener';a.textContent='Ver en Google Maps';a.style.color='#176b9a';a.style.fontSize='13px';row.append(a)}
   const del=document.createElement('button');del.className='danger';del.textContent='Eliminar';del.style.flex='0 0 auto';del.style.padding='7px 10px';del.onclick=()=>{if(confirm('¿Eliminar el registro '+r.referencia+'?')){records=records.filter(x=>x.id!==r.id);persist()}};
@@ -202,7 +211,7 @@ function getGps(){
  }catch(err){stopGpsMeasurement('No se pudo iniciar la medición GPS. Comprueba los permisos y vuelve a intentarlo.','warn');}
 }
 $('gpsBtn').onclick=getGps;
-$('gpsStopBtn').onclick=()=>stopGpsMeasurement('Medición GPS detenida manualmente.');
+$('gpsStopBtn').onclick=()=>stopGpsMeasurement(bestGpsPosition?'Medición detenida. Se conserva la lectura más precisa.':'Medición detenida sin obtener posición GPS.','warn');
 $('saveBtn').onclick=()=>{
  const n1=$('ref1').value.trim(),n2=$('ref2').value.trim();
  const valid1=n1!==''&&Number.isInteger(Number(n1))&&Number(n1)>=0&&Number(n1)<=99;
@@ -266,9 +275,19 @@ function exportXLSX(){
  download(new Blob([zip(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`Registro_armarios_${dateName()}.xlsx`);
 }
 $('exportBtn').onclick=exportXLSX;
-$('backupBtn').onclick=()=>download(new Blob([JSON.stringify(records,null,2)],{type:'application/json'}),`Copia_armarios_${dateName()}.json`);
+$('backupBtn').onclick=()=>download(new Blob([JSON.stringify({version:2,fechaCopia:new Date().toISOString(),registros:records,catalogo:catalogRows},null,2)],{type:'application/json'}),`Copia_armarios_${dateName()}.json`);
 $('importBtn').onclick=()=>$('fileInput').click();
-$('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data)||!data.every(x=>x.referencia&&x.timestamp))throw Error();if(confirm(`Se van a importar ${data.length} registros. ¿Añadirlos a los actuales?`)){records.push(...data);persist();alert('Copia importada.')}}catch(err){alert('El archivo no tiene un formato de copia válido.')}e.target.value=''};
+$('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
+ const backup=JSON.parse(await f.text());
+ const data=Array.isArray(backup)?backup:backup.registros;
+ if(!Array.isArray(data)||!data.every(x=>x&&typeof x.referencia==='string'&&x.timestamp))throw Error('Formato');
+ if(confirm(`Se van a importar ${data.length} registros. ¿Añadirlos a los actuales?`)){
+  const ids=new Set(records.map(x=>x.id).filter(Boolean));
+  data.forEach(item=>{const copy={...item};if(!copy.id||ids.has(copy.id))copy.id=(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random());ids.add(copy.id);records.push(copy)});
+  if(!Array.isArray(backup)&&Array.isArray(backup.catalogo)&&backup.catalogo.length){catalogRows=backup.catalogo.filter(r=>r&&typeof r.referenciaActual==='string');observationCatalog=new Map();catalogRows.forEach(r=>{const k=normalizeReference(r.referenciaActual);if(k&&!observationCatalog.has(k))observationCatalog.set(k,{observacion:r.observacion||'',referenciaAntigua:r.referenciaAntigua||''})});try{localStorage.setItem('armarios_gps_catalog_v1',JSON.stringify(catalogRows))}catch(err){};renderOldReferenceSearch();$('catalogStatus').textContent=`Catálogo recuperado: ${catalogRows.length} filas`;$('catalogStatus').className='status good'}
+  persist();alert('Copia importada correctamente.');
+ }
+ }catch(err){alert('El archivo no tiene un formato de copia válido.')}e.target.value=''};
 $('clearBtn').onclick=()=>{if(records.length&&confirm('¿Borrar definitivamente todos los registros guardados en este dispositivo? Exporta antes una copia si la necesitas.')){records=[];persist()}};
 render();
 
@@ -293,7 +312,7 @@ function refreshObservation(){
   $('catalogStatus').textContent='Referencia encontrada: '+ref;
   $('catalogStatus').className='status good';
  }else if(observationCatalog.size){
-  $('oldRef').value='';
+  $('oldRef').value='';$('obs').value='';
   $('catalogStatus').textContent='Referencia no encontrada en el TXT';
   $('catalogStatus').className='status warn';
  }
@@ -332,7 +351,7 @@ $('catalogFile').onchange=async e=>{
    if(cols.length<3)return;
    const current=(cols[0]||'').trim(), note=(cols[1]||'').trim(), oldReference=(cols[2]||'').trim();
    const key=normalizeReference(current);
-   if(index===0&&/^(REFERENCIA_ACTUAL|REFERENCIA ACTUAL|REFERENCIA|REFERENCE|CODIGO|CÓDIGO)$/i.test(key))return;
+   if(/^(REFERENCIA_ACTUAL|REFERENCIA ACTUAL|REFERENCIA|REFERENCE|CODIGO|CÓDIGO)$/.test(key)&&!rows.length)return;
    if(!key)return;
    const row={referenciaActual:current,observacion:note,referenciaAntigua:oldReference};
    rows.push(row);
@@ -360,6 +379,12 @@ try{
   $('catalogStatus').className='status good';
  }
 }catch(e){}
+// Registro del Service Worker para instalación y funcionamiento sin conexión.
+let appRegistration=null;
+if('serviceWorker' in navigator){
+ window.addEventListener('load',async()=>{try{appRegistration=await navigator.serviceWorker.register('./sw.js');$('appStatus').textContent='Aplicación instalada en el navegador. Funcionamiento sin conexión disponible tras la primera carga.';appRegistration.addEventListener('updatefound',()=>{const worker=appRegistration.installing;if(worker)worker.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller)$('appStatus').textContent='Hay una actualización preparada. Pulsa «Comprobar actualizaciones» para aplicarla.'})})}catch(err){$('appStatus').textContent='No se pudo activar el modo PWA en este alojamiento.'}});
+}
+$('updateBtn').onclick=async()=>{const status=$('appStatus');if(!('serviceWorker' in navigator)){status.textContent='Este navegador no admite actualizaciones PWA.';return;}try{const reg=appRegistration||await navigator.serviceWorker.getRegistration('./');if(!reg){status.textContent='No hay un Service Worker registrado. Abre la aplicación desde HTTPS.';return;}await reg.update();status.textContent='Comprobación completada. Si hay una versión nueva, se descargará en segundo plano.';if(reg.waiting){status.textContent='Actualización descargada. Recarga la aplicación para utilizarla.';if(confirm('Hay una actualización preparada. ¿Recargar ahora?'))location.reload();}}catch(err){status.textContent='No se pudo comprobar si hay actualizaciones. Comprueba la conexión.'}};
 </script>
 </body>
 </html>
