@@ -77,12 +77,12 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div class="field"><label for="obs">Observaciones (opcional, editable)</label><textarea id="obs" placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea></div>
 <div id="gpsStatus" class="status">GPS pendiente. Pulsa «Obtener posición».</div>
 <div class="row" style="margin:10px 0">
-<button class="secondary" id="gpsBtn" type="button">◎ Obtener posición GPS</button>
+<button class="secondary" id="gpsBtn" type="button">◎ Buscar mejor posición GPS (60 s)</button>
 <div class="status" id="accuracy">Precisión: sin medir</div>
 </div>
 <div class="field"><label>Coordenadas capturadas</label><div class="coords" id="coords">Sin posición GPS</div></div>
 <button class="primary" id="saveBtn" type="button">REGISTRAR ARMARIO</button>
-<p class="muted">La posición se obtiene al pulsar el botón GPS. Se recomienda registrar al aire libre y esperar una precisión adecuada.</p>
+<p class="muted">Se recogen lecturas durante un máximo de 60 segundos y se conserva la de menor margen de error. En interiores la estructura de la nave puede limitar mucho el GPS.</p>
 </section>
 <section class="card">
 <h2>Resumen</h2>
@@ -135,21 +135,45 @@ function render(){
  });
 }
 function setGpsMessage(msg,kind=''){const e=$('gpsStatus');e.textContent=msg;e.className='status '+kind}
+let gpsWatchId=null, gpsTimer=null, gpsStartedAt=0;
+function finishGps(message,kind=''){
+ if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null}
+ if(gpsTimer!==null){clearTimeout(gpsTimer);gpsTimer=null}
+ $('gpsBtn').disabled=false;
+ if(currentPosition){
+  $('coords').textContent=`${currentPosition.lat.toFixed(7)}, ${currentPosition.lon.toFixed(7)}`;
+  const a=currentPosition.precision;
+  const quality=a<=10?'Buena':a<=30?'Aceptable':'Baja';
+  $('accuracy').textContent=`Mejor precisión: ±${Math.round(a)} m · ${quality}`;
+  setGpsMessage(message,kind);
+ }else setGpsMessage(message,kind||'warn');
+}
 function getGps(){
  if(!('geolocation' in navigator)){setGpsMessage('Este navegador no ofrece geolocalización.','warn');return}
- setGpsMessage('Buscando satélites y calculando posición…');
- $('gpsBtn').disabled=true;
- navigator.geolocation.getCurrentPosition(pos=>{
-  currentPosition={lat:pos.coords.latitude,lon:pos.coords.longitude,precision:pos.coords.accuracy};
-  $('coords').textContent=`${currentPosition.lat.toFixed(7)}, ${currentPosition.lon.toFixed(7)}`;
-  $('accuracy').textContent=`Precisión: ±${Math.round(currentPosition.precision)} m`;
-  setGpsMessage('Posición GPS capturada correctamente.','good');
-  $('gpsBtn').disabled=false;
+ if(gpsWatchId!==null){finishGps('Búsqueda detenida.','warn');return}
+ currentPosition=null;gpsStartedAt=Date.now();
+ $('gpsBtn').disabled=false;$('gpsBtn').textContent='Detener búsqueda GPS';
+ $('accuracy').textContent='Esperando lecturas…';$('coords').textContent='Buscando posición…';
+ setGpsMessage('Buscando la mejor lectura GPS. Puede tardar hasta 60 segundos…');
+ gpsTimer=setTimeout(()=>finishGps(currentPosition?'Búsqueda terminada. Se ha conservado la mejor lectura.':'No se obtuvo ninguna lectura GPS. Prueba cerca de una ventana o en el exterior.',currentPosition?'good':'warn'),60000);
+ gpsWatchId=navigator.geolocation.watchPosition(pos=>{
+  const c=pos.coords, candidate={lat:c.latitude,lon:c.longitude,precision:c.accuracy};
+  if(!currentPosition||candidate.precision<currentPosition.precision){
+   currentPosition=candidate;
+   $('coords').textContent=`${candidate.lat.toFixed(7)}, ${candidate.lon.toFixed(7)}`;
+  }
+  const elapsed=Math.round((Date.now()-gpsStartedAt)/1000);
+  const a=currentPosition.precision, quality=a<=10?'Buena':a<=30?'Aceptable':'Baja';
+  $('accuracy').textContent=`Mejor precisión: ±${Math.round(a)} m · ${quality}`;
+  setGpsMessage(`Lectura recibida (${elapsed}/60 s). Buscando una posición mejor…`);
  },err=>{
-  const messages={1:'Permiso de ubicación denegado. Activa el permiso para este sitio en Chrome.',2:'No se pudo determinar la posición. Comprueba el GPS y vuelve a intentarlo.',3:'Se agotó el tiempo de espera. Inténtalo de nuevo.'};
-  setGpsMessage(messages[err.code]||'Error al obtener GPS.','warn');$('gpsBtn').disabled=false;
- },{enableHighAccuracy:true,timeout:30000,maximumAge:0});
+  if(err.code===1){finishGps('Permiso de ubicación denegado. Activa el permiso para este sitio en Chrome.','warn');return}
+  const msg=err.code===2?'Aún no hay posición disponible. Seguimos intentando…':'El GPS tarda en responder. Seguimos intentando…';
+  setGpsMessage(msg,'warn');
+ },{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+ $('gpsBtn').disabled=false;
 }
+$('gpsBtn').textContent='◎ Buscar mejor posición GPS (60 s)';
 $('gpsBtn').onclick=getGps;
 $('saveBtn').onclick=()=>{
  const n1=$('ref1').value.trim(),n2=$('ref2').value.trim();
@@ -157,12 +181,14 @@ $('saveBtn').onclick=()=>{
  const valid2=n2!==''&&Number.isInteger(Number(n2))&&Number(n2)>=0&&Number(n2)<=99;
  if(!valid1||!valid2){alert('Introduce ambos números enteros entre 0 y 99.');(!valid1?$('ref1'):$('ref2')).focus();return}
  const referencia=$('prefix').value+'-'+String(Number(n1)).padStart(2,'0')+'-'+String(Number(n2)).padStart(2,'0');
+ if(gpsWatchId!==null){alert('Espera a que termine la búsqueda GPS o pulsa «Detener búsqueda GPS» antes de registrar.');return}
  if(!currentPosition){if(!confirm('No hay posición GPS capturada. ¿Quieres guardar el registro sin coordenadas?'))return}
+ if(currentPosition&&currentPosition.precision>30&&!confirm(`La precisión GPS es baja (±${Math.round(currentPosition.precision)} m). ¿Quieres guardar igualmente esta posición?`))return
  const duplicate=records.some(r=>r.referencia.toLowerCase()===referencia.toLowerCase());
  if(duplicate&&!confirm('Ya existe un registro con esta referencia. ¿Quieres añadir otro registro igualmente?'))return;
  const now=new Date();
  records.push({id:(crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim()});
- persist();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+ persist();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';$('gpsBtn').textContent='◎ Buscar mejor posición GPS (60 s)';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 };
 $('filter').oninput=render;
 function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
