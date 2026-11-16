@@ -1,7 +1,7 @@
-REGISTRO DE ARMARIOS ELÉCTRICOS GPS
+ACTUALIZACION 2.1 - REGISTRO DE ARMARIOS GPS
 
-Archivos de la aplicación PWA. Sube TODOS los archivos de esta carpeta a la raíz del repositorio de GitHub. Después activa GitHub Pages desde Settings > Pages > Deploy from a branch > main > /(root) > Save.
+Incluye panel de información con versión instalada (2.1), fecha de publicación y botón para comprobar actualizaciones.
 
-La aplicación guarda registros y catálogo en el almacenamiento local del navegador. Antes de migrar desde el HTML anterior, exporta una copia JSON y guárdala. Los datos de file:// no pasan automáticamente al nuevo sitio HTTPS: tendrás que importarlos en la aplicación publicada.
+Para actualizar GitHub: sube estos archivos a la raíz del repositorio y confirma los cambios. No borres datos del navegador ni desinstales la PWA.
 
-El modo sin conexión estará disponible después de abrir la web publicada al menos una vez con Internet. El GPS requiere permiso de ubicación del navegador y puede tardar en fijar posición.
+La aplicación conserva sus datos en localStorage bajo las mismas claves de versiones anteriores.

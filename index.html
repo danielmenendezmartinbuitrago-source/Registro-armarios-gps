@@ -104,6 +104,14 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div id="records" class="records"><div class="empty">Todavía no hay registros.</div></div>
 </section>
 </main>
+<section class="card wide" aria-labelledby="appInfoTitle">
+<h2 id="appInfoTitle">Información de la aplicación</h2>
+<div class="row"><span class="muted">Versión instalada</span><strong id="appVersion">2.1</strong></div>
+<div class="row"><span class="muted">Publicada</span><span id="appBuildDate">16/11/2026</span></div>
+<div class="row"><span class="muted">Estado de actualización</span><span id="updateStatus" class="status">Comprobando…</span></div>
+<button class="secondary" id="checkUpdateBtn" type="button">Comprobar actualizaciones</button>
+<p class="muted">Los registros y el catálogo se conservan en este dispositivo. No borres los datos del navegador al actualizar.</p>
+</section>
 <footer>Registro local · GPS del dispositivo · No se envían datos a ningún servidor</footer>
 <script>
 'use strict';
@@ -245,7 +253,27 @@ $('importBtn').onclick=()=>$('fileInput').click();
 $('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data)||!data.every(x=>x.referencia&&x.timestamp))throw Error();if(confirm(`Se van a importar ${data.length} registros. ¿Añadirlos a los actuales?`)){records.push(...data);persist();alert('Copia importada.')}}catch(err){alert('El archivo no tiene un formato de copia válido.')}e.target.value=''};
 $('clearBtn').onclick=()=>{if(records.length&&confirm('¿Borrar definitivamente todos los registros guardados en este dispositivo? Exporta antes una copia si la necesitas.')){records=[];persist()}};
 render();
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('No se pudo activar el modo sin conexión', err))); }
+let appRegistration=null;
+function updateStatus(message,kind='') { const el=$('updateStatus'); if(el){el.textContent=message;el.className='status '+kind;} }
+async function checkForUpdates(showResult=true){
+ if(!('serviceWorker' in navigator)){updateStatus('Navegador sin soporte PWA','warn');return;}
+ try{
+  appRegistration=appRegistration||await navigator.serviceWorker.getRegistration('./');
+  if(!appRegistration) appRegistration=await navigator.serviceWorker.register('./sw.js');
+  await appRegistration.update();
+  if(appRegistration.waiting){updateStatus('Actualización lista para aplicar','good');return;}
+  if(appRegistration.installing){updateStatus('Descargando actualización…');appRegistration.installing.addEventListener('statechange',()=>{if(appRegistration.installing && appRegistration.installing.state==='activated')updateStatus('Aplicación actualizada','good');});return;}
+  updateStatus(showResult?'Estás utilizando la versión 2.1':'Actualizada','good');
+ }catch(e){updateStatus('No se pudo comprobar. Revisa Internet.','warn');}
+}
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+ window.addEventListener('load', async () => {
+  try { appRegistration=await navigator.serviceWorker.register('./sw.js'); await checkForUpdates(false); }
+  catch(err){ updateStatus('No se pudo comprobar la actualización','warn'); }
+ });
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{updateStatus('Nueva versión activada','good');});
+}
+$('checkUpdateBtn').onclick=()=>checkForUpdates(true);
 
 // Catálogo TXT: columna 1 = referencia, columna 2 = observación; separador TAB.
 let observationCatalog = new Map();
