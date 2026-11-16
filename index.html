@@ -97,8 +97,8 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </section>
 <section class="card wide">
 <h2>Buscar por referencia antigua</h2>
-<div class="field"><label for="oldRefSearch">Referencia antigua (coincidencia exacta)</label>
-<input id="oldRefSearch" type="search" placeholder="Escribe la referencia antigua completa...">
+<div class="field"><label for="oldRefSearch">Referencia antigua (búsqueda parcial)</label>
+<input id="oldRefSearch" type="search" placeholder="Escribe una parte de la referencia antigua...">
 </div>
 <div class="muted">Busca en la tercera columna del TXT y muestra todas las referencias actuales coincidentes. Esta consulta no crea ni modifica registros.</div>
 <div id="oldRefResults" class="records" style="margin-top:12px"><div class="empty">Carga el catálogo TXT y escribe una referencia antigua para buscar.</div></div>
@@ -125,7 +125,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </main>
 <section class="card wide" aria-label="Información de la aplicación">
 <h2>Información y actualizaciones</h2>
-<div class="row"><div><strong>Registro de armarios GPS · Versión 2.3</strong><div class="muted">Actualización: 16/11/2026</div></div><button class="secondary" id="updateBtn" type="button">Comprobar actualizaciones</button></div>
+<div class="row"><div><strong>Registro de armarios GPS · Versión 2.4</strong><div class="muted">Actualización: 16/11/2026</div></div><button class="secondary" id="updateBtn" type="button">Comprobar actualizaciones</button></div>
 <div class="status" id="appStatus" style="margin-top:10px">Aplicación lista.</div>
 </section>
 <footer>Registro local · GPS del dispositivo · No se envían datos a ningún servidor</footer>
@@ -322,8 +322,8 @@ function renderOldReferenceSearch(){
  const container=$('oldRefResults');
  container.innerHTML='';
  if(!catalogRows.length){container.innerHTML='<div class="empty">Carga primero el catálogo TXT.</div>';return;}
- if(!query){container.innerHTML='<div class="empty">Escribe la referencia antigua completa para buscar.</div>';return;}
- const matches=catalogRows.filter(row=>normalizeReference(row.referenciaAntigua)===query);
+ if(!query){container.innerHTML='<div class="empty">Escribe una parte de la referencia antigua para buscar.</div>';return;}
+ const matches=catalogRows.filter(row=>normalizeReference(row.referenciaAntigua).includes(query));
  if(!matches.length){container.innerHTML='<div class="empty">No se encontraron coincidencias.</div>';return;}
  const heading=document.createElement('div');heading.className='muted';heading.textContent=`${matches.length} coincidencia(s) encontrada(s)`;container.append(heading);
  matches.forEach(row=>{
