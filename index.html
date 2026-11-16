@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#123b56">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="description" content="Registro geolocalizado de armarios eléctricos">
 <title>Registro de armarios eléctricos</title>
 <style>
@@ -76,13 +74,30 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div class="field"><label for="oldRef">Referencia antigua (desde el catálogo)</label><input id="oldRef" readonly placeholder="Sin referencia antigua asociada"></div>
 <div class="field"><label for="obs">Observaciones (opcional, editable)</label><textarea id="obs" placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea></div>
 <div id="gpsStatus" class="status">GPS pendiente. Pulsa «Obtener posición».</div>
-<div class="row" style="margin:10px 0">
-<button class="secondary" id="gpsBtn" type="button">◎ Buscar mejor posición GPS (60 s)</button>
-<div class="status" id="accuracy">Precisión: sin medir</div>
+<div class="field">
+<label for="gpsDuration">Tiempo de medición GPS</label>
+<select id="gpsDuration" style="width:100%;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
+<option value="30">30 segundos</option><option value="60" selected>60 segundos</option>
+<option value="90">90 segundos</option><option value="120">120 segundos</option>
+</select>
+<div class="muted">Durante ese tiempo se conservará la lectura de mayor precisión (menor margen de error).</div>
 </div>
+<div class="row" style="margin:10px 0">
+<button class="secondary" id="gpsBtn" type="button">◎ Iniciar medición GPS</button>
+<button class="danger" id="gpsStopBtn" type="button" disabled>Detener</button>
+</div>
+<div class="status" id="accuracy">Precisión: sin medir</div>
 <div class="field"><label>Coordenadas capturadas</label><div class="coords" id="coords">Sin posición GPS</div></div>
 <button class="primary" id="saveBtn" type="button">REGISTRAR ARMARIO</button>
-<p class="muted">Se recogen lecturas durante un máximo de 60 segundos y se conserva la de menor margen de error. En interiores la estructura de la nave puede limitar mucho el GPS.</p>
+<p class="muted">La posición se obtiene al pulsar el botón GPS. Se recomienda registrar al aire libre y esperar una precisión adecuada.</p>
+</section>
+<section class="card wide">
+<h2>Buscar por referencia antigua</h2>
+<div class="field"><label for="oldRefSearch">Referencia antigua (búsqueda parcial)</label>
+<input id="oldRefSearch" type="search" placeholder="Escribe una parte de la referencia antigua...">
+</div>
+<div class="muted">Busca en la tercera columna del TXT y muestra todas las referencias actuales coincidentes. Esta consulta no crea ni modifica registros.</div>
+<div id="oldRefResults" class="records" style="margin-top:12px"><div class="empty">Carga el catálogo TXT y escribe una referencia antigua para buscar.</div></div>
 </section>
 <section class="card">
 <h2>Resumen</h2>
@@ -104,14 +119,6 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div id="records" class="records"><div class="empty">Todavía no hay registros.</div></div>
 </section>
 </main>
-<section class="card wide" aria-labelledby="appInfoTitle">
-<h2 id="appInfoTitle">Información de la aplicación</h2>
-<div class="row"><span class="muted">Versión instalada</span><strong id="appVersion">2.1</strong></div>
-<div class="row"><span class="muted">Publicada</span><span id="appBuildDate">16/11/2026</span></div>
-<div class="row"><span class="muted">Estado de actualización</span><span id="updateStatus" class="status">Comprobando…</span></div>
-<button class="secondary" id="checkUpdateBtn" type="button">Comprobar actualizaciones</button>
-<p class="muted">Los registros y el catálogo se conservan en este dispositivo. No borres los datos del navegador al actualizar.</p>
-</section>
 <footer>Registro local · GPS del dispositivo · No se envían datos a ningún servidor</footer>
 <script>
 'use strict';
@@ -143,60 +150,71 @@ function render(){
  });
 }
 function setGpsMessage(msg,kind=''){const e=$('gpsStatus');e.textContent=msg;e.className='status '+kind}
-let gpsWatchId=null, gpsTimer=null, gpsStartedAt=0;
-function finishGps(message,kind=''){
- if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null}
- if(gpsTimer!==null){clearTimeout(gpsTimer);gpsTimer=null}
- $('gpsBtn').disabled=false;
- if(currentPosition){
+let gpsWatchId=null, gpsTimerId=null, gpsTickId=null, gpsStartedAt=0, gpsDurationMs=60000, bestGpsPosition=null;
+function stopGpsMeasurement(message, kind=''){
+ if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
+ if(gpsTimerId!==null){clearTimeout(gpsTimerId);gpsTimerId=null;}
+ if(gpsTickId!==null){clearInterval(gpsTickId);gpsTickId=null;}
+ $('gpsBtn').disabled=false;$('gpsBtn').textContent='◎ Iniciar medición GPS';
+ $('gpsStopBtn').disabled=true;
+ $('gpsDuration').disabled=false;
+ if(bestGpsPosition){
+  currentPosition=bestGpsPosition;
   $('coords').textContent=`${currentPosition.lat.toFixed(7)}, ${currentPosition.lon.toFixed(7)}`;
-  const a=currentPosition.precision;
-  const quality=a<=10?'Buena':a<=30?'Aceptable':'Baja';
-  $('accuracy').textContent=`Mejor precisión: ±${Math.round(a)} m · ${quality}`;
-  setGpsMessage(message,kind);
- }else setGpsMessage(message,kind||'warn');
+  $('accuracy').textContent=`Mejor precisión: ±${Math.round(currentPosition.precision)} m`;
+  setGpsMessage(message||'Medición finalizada. Se ha guardado la lectura más precisa.','good');
+ }else{
+  currentPosition=null;
+  $('accuracy').textContent='Precisión: sin medir';
+  setGpsMessage(message||'Medición finalizada sin obtener una posición GPS.','warn');
+ }
 }
 function getGps(){
- if(!('geolocation' in navigator)){setGpsMessage('Este navegador no ofrece geolocalización.','warn');return}
- if(gpsWatchId!==null){finishGps('Búsqueda detenida.','warn');return}
- currentPosition=null;gpsStartedAt=Date.now();
- $('gpsBtn').disabled=false;$('gpsBtn').textContent='Detener búsqueda GPS';
- $('accuracy').textContent='Esperando lecturas…';$('coords').textContent='Buscando posición…';
- setGpsMessage('Buscando la mejor lectura GPS. Puede tardar hasta 60 segundos…');
- gpsTimer=setTimeout(()=>finishGps(currentPosition?'Búsqueda terminada. Se ha conservado la mejor lectura.':'No se obtuvo ninguna lectura GPS. Prueba cerca de una ventana o en el exterior.',currentPosition?'good':'warn'),60000);
- gpsWatchId=navigator.geolocation.watchPosition(pos=>{
-  const c=pos.coords, candidate={lat:c.latitude,lon:c.longitude,precision:c.accuracy};
-  if(!currentPosition||candidate.precision<currentPosition.precision){
-   currentPosition=candidate;
-   $('coords').textContent=`${candidate.lat.toFixed(7)}, ${candidate.lon.toFixed(7)}`;
-  }
-  const elapsed=Math.round((Date.now()-gpsStartedAt)/1000);
-  const a=currentPosition.precision, quality=a<=10?'Buena':a<=30?'Aceptable':'Baja';
-  $('accuracy').textContent=`Mejor precisión: ±${Math.round(a)} m · ${quality}`;
-  setGpsMessage(`Lectura recibida (${elapsed}/60 s). Buscando una posición mejor…`);
- },err=>{
-  if(err.code===1){finishGps('Permiso de ubicación denegado. Activa el permiso para este sitio en Chrome.','warn');return}
-  const msg=err.code===2?'Aún no hay posición disponible. Seguimos intentando…':'El GPS tarda en responder. Seguimos intentando…';
-  setGpsMessage(msg,'warn');
- },{enableHighAccuracy:true,timeout:20000,maximumAge:0});
- $('gpsBtn').disabled=false;
+ if(gpsWatchId!==null)return;
+ if(!('geolocation' in navigator)){setGpsMessage('Este navegador no ofrece geolocalización.','warn');return;}
+ bestGpsPosition=null;currentPosition=null;
+ gpsDurationMs=Number($('gpsDuration').value)*1000;
+ gpsStartedAt=Date.now();
+ $('coords').textContent='Midiendo posición…';
+ $('accuracy').textContent='Buscando la mejor precisión…';
+ $('gpsBtn').disabled=true;$('gpsStopBtn').disabled=false;$('gpsDuration').disabled=true;
+ setGpsMessage(`Medición GPS iniciada: ${gpsDurationMs/1000} segundos. Mantén la aplicación abierta.`);
+ const updateCountdown=()=>{
+  const remaining=Math.max(0,Math.ceil((gpsDurationMs-(Date.now()-gpsStartedAt))/1000));
+  $('gpsBtn').textContent=`Midiendo GPS · ${remaining}s`;
+ };
+ updateCountdown();
+ gpsTickId=setInterval(updateCountdown,250);
+ gpsTimerId=setTimeout(()=>stopGpsMeasurement('Tiempo de medición completado. Se ha seleccionado la lectura GPS más precisa.','good'),gpsDurationMs);
+ try{
+  gpsWatchId=navigator.geolocation.watchPosition(pos=>{
+   const candidate={lat:pos.coords.latitude,lon:pos.coords.longitude,precision:pos.coords.accuracy};
+   if(!bestGpsPosition||candidate.precision<bestGpsPosition.precision){
+    bestGpsPosition=candidate;
+    $('coords').textContent=`${candidate.lat.toFixed(7)}, ${candidate.lon.toFixed(7)}`;
+    $('accuracy').textContent=`Mejor precisión obtenida: ±${Math.round(candidate.precision)} m`;
+   }
+  },err=>{
+   const messages={1:'Permiso de ubicación denegado. Activa el permiso para este sitio en Chrome.',2:'Temporalmente no se puede determinar la posición. La medición seguirá intentándolo.',3:'Se agotó el tiempo de espera de una lectura. La medición seguirá activa.'};
+   if(err.code===1)stopGpsMeasurement(messages[1],'warn');
+   else setGpsMessage(messages[err.code]||'Problema temporal al recibir una lectura GPS. Se seguirá intentando.','warn');
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+ }catch(err){stopGpsMeasurement('No se pudo iniciar la medición GPS. Comprueba los permisos y vuelve a intentarlo.','warn');}
 }
-$('gpsBtn').textContent='◎ Buscar mejor posición GPS (60 s)';
 $('gpsBtn').onclick=getGps;
+$('gpsStopBtn').onclick=()=>stopGpsMeasurement('Medición GPS detenida manualmente.');
 $('saveBtn').onclick=()=>{
  const n1=$('ref1').value.trim(),n2=$('ref2').value.trim();
  const valid1=n1!==''&&Number.isInteger(Number(n1))&&Number(n1)>=0&&Number(n1)<=99;
  const valid2=n2!==''&&Number.isInteger(Number(n2))&&Number(n2)>=0&&Number(n2)<=99;
  if(!valid1||!valid2){alert('Introduce ambos números enteros entre 0 y 99.');(!valid1?$('ref1'):$('ref2')).focus();return}
  const referencia=$('prefix').value+'-'+String(Number(n1)).padStart(2,'0')+'-'+String(Number(n2)).padStart(2,'0');
- if(gpsWatchId!==null){alert('Espera a que termine la búsqueda GPS o pulsa «Detener búsqueda GPS» antes de registrar.');return}
  if(!currentPosition){if(!confirm('No hay posición GPS capturada. ¿Quieres guardar el registro sin coordenadas?'))return}
- if(currentPosition&&currentPosition.precision>30&&!confirm(`La precisión GPS es baja (±${Math.round(currentPosition.precision)} m). ¿Quieres guardar igualmente esta posición?`))return
  const duplicate=records.some(r=>r.referencia.toLowerCase()===referencia.toLowerCase());
  if(duplicate&&!confirm('Ya existe un registro con esta referencia. ¿Quieres añadir otro registro igualmente?'))return;
  const now=new Date();
- records.push({id:(crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim()});
- persist();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';$('gpsBtn').textContent='◎ Buscar mejor posición GPS (60 s)';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+ records.push({id:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim()});
+ persist();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 };
 $('filter').oninput=render;
 function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
@@ -233,7 +251,7 @@ function worksheet(rows){
   if(typeof v==='number'&&Number.isFinite(v))return `<c r="${ref}"><v>${v}</v></c>`;
   return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(v)}</t></is></c>`;
  }).join('')+'</row>').join('');
- return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData><autoFilter ref="A1:F${Math.max(1,rows.length)}"/></worksheet>`;
+ return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData><autoFilter ref="A1:H${Math.max(1,rows.length)}"/></worksheet>`;
 }
 function exportXLSX(){
  const rows=[['Fecha y hora','Referencia','Referencia antigua','Planta','Latitud','Longitud','Precisión GPS (m)','Observaciones'],
@@ -253,31 +271,10 @@ $('importBtn').onclick=()=>$('fileInput').click();
 $('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data)||!data.every(x=>x.referencia&&x.timestamp))throw Error();if(confirm(`Se van a importar ${data.length} registros. ¿Añadirlos a los actuales?`)){records.push(...data);persist();alert('Copia importada.')}}catch(err){alert('El archivo no tiene un formato de copia válido.')}e.target.value=''};
 $('clearBtn').onclick=()=>{if(records.length&&confirm('¿Borrar definitivamente todos los registros guardados en este dispositivo? Exporta antes una copia si la necesitas.')){records=[];persist()}};
 render();
-let appRegistration=null;
-function updateStatus(message,kind='') { const el=$('updateStatus'); if(el){el.textContent=message;el.className='status '+kind;} }
-async function checkForUpdates(showResult=true){
- if(!('serviceWorker' in navigator)){updateStatus('Navegador sin soporte PWA','warn');return;}
- try{
-  appRegistration=appRegistration||await navigator.serviceWorker.getRegistration('./');
-  if(!appRegistration) appRegistration=await navigator.serviceWorker.register('./sw.js');
-  await appRegistration.update();
-  if(appRegistration.waiting){updateStatus('Actualización lista para aplicar','good');return;}
-  if(appRegistration.installing){updateStatus('Descargando actualización…');appRegistration.installing.addEventListener('statechange',()=>{if(appRegistration.installing && appRegistration.installing.state==='activated')updateStatus('Aplicación actualizada','good');});return;}
-  updateStatus(showResult?'Estás utilizando la versión 2.1':'Actualizada','good');
- }catch(e){updateStatus('No se pudo comprobar. Revisa Internet.','warn');}
-}
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
- window.addEventListener('load', async () => {
-  try { appRegistration=await navigator.serviceWorker.register('./sw.js'); await checkForUpdates(false); }
-  catch(err){ updateStatus('No se pudo comprobar la actualización','warn'); }
- });
- navigator.serviceWorker.addEventListener('controllerchange',()=>{updateStatus('Nueva versión activada','good');});
-}
-$('checkUpdateBtn').onclick=()=>checkForUpdates(true);
 
-// Catálogo TXT: columna 1 = referencia, columna 2 = observación; separador TAB.
+// Catálogo TXT: columna 1 = referencia actual; columna 2 = observaciones; columna 3 = referencia antigua.
 let observationCatalog = new Map();
-try { const savedCatalog=JSON.parse(localStorage.getItem('armarios_gps_catalog_v1')||'[]'); observationCatalog=new Map(savedCatalog); } catch(e) {}
+let catalogRows = [];
 function normalizeReference(value){
  return String(value||'').trim().toUpperCase().replace(/\s+/g,'');
 }
@@ -296,39 +293,73 @@ function refreshObservation(){
   $('catalogStatus').textContent='Referencia encontrada: '+ref;
   $('catalogStatus').className='status good';
  }else if(observationCatalog.size){
-  $('obs').value='';
+  $('oldRef').value='';
   $('catalogStatus').textContent='Referencia no encontrada en el TXT';
   $('catalogStatus').className='status warn';
  }
+}
+function renderOldReferenceSearch(){
+ const query=normalizeReference($('oldRefSearch').value);
+ const container=$('oldRefResults');
+ container.innerHTML='';
+ if(!catalogRows.length){container.innerHTML='<div class="empty">Carga primero el catálogo TXT.</div>';return;}
+ if(!query){container.innerHTML='<div class="empty">Escribe una parte de la referencia antigua para buscar.</div>';return;}
+ const matches=catalogRows.filter(row=>normalizeReference(row.referenciaAntigua).includes(query));
+ if(!matches.length){container.innerHTML='<div class="empty">No se encontraron coincidencias.</div>';return;}
+ const heading=document.createElement('div');heading.className='muted';heading.textContent=`${matches.length} coincidencia(s) encontrada(s)`;container.append(heading);
+ matches.forEach(row=>{
+  const item=document.createElement('div');item.className='record';
+  const current=document.createElement('strong');current.textContent=row.referenciaActual||'(Sin referencia actual)';
+  const old=document.createElement('small');old.textContent='Referencia antigua: '+row.referenciaAntigua;
+  item.append(current,old);
+  if(row.observacion){const note=document.createElement('small');note.textContent='Observaciones: '+row.observacion;item.append(note);}
+  container.append(item);
+ });
 }
 ['prefix','ref1','ref2'].forEach(id=>$(id).addEventListener('change',refreshObservation));
 $('ref1').addEventListener('input',refreshObservation);
 $('ref2').addEventListener('input',refreshObservation);
 $('catalogBtn').onclick=()=>$('catalogFile').click();
+$('oldRefSearch').addEventListener('input',renderOldReferenceSearch);
 $('catalogFile').onchange=async e=>{
  const file=e.target.files[0];if(!file)return;
  try{
   const text=await file.text();
-  const next=new Map();
+  const next=new Map(), rows=[];
   text.replace(/^\uFEFF/,'').split(/\r?\n/).forEach((line,index)=>{
    if(!line.trim())return;
    const cols=line.split('\t');
-   if(cols.length<2)return;
-   const key=normalizeReference(cols[0]);
-   const note=(cols[1]||'').trim();
-   const oldReference=(cols[2]||'').trim();
-   if(index===0&&/^(REFERENCIA|REFERENCE|CODIGO|CÓDIGO)$/i.test(key))return;
-   if(key)next.set(key,{observacion:note,referenciaAntigua:oldReference});
+   if(cols.length<3)return;
+   const current=(cols[0]||'').trim(), note=(cols[1]||'').trim(), oldReference=(cols[2]||'').trim();
+   const key=normalizeReference(current);
+   if(index===0&&/^(REFERENCIA_ACTUAL|REFERENCIA ACTUAL|REFERENCIA|REFERENCE|CODIGO|CÓDIGO)$/i.test(key))return;
+   if(!key)return;
+   const row={referenciaActual:current,observacion:note,referenciaAntigua:oldReference};
+   rows.push(row);
+   if(!next.has(key))next.set(key,{observacion:note,referenciaAntigua:oldReference});
   });
-  if(!next.size){alert('No se encontraron filas válidas. El TXT debe tener referencia actual, observación y referencia antigua en tres columnas separadas por tabuladores.');return}
-  observationCatalog=next;
-  localStorage.setItem('armarios_gps_catalog_v1', JSON.stringify([...next]));
-  $('catalogStatus').textContent=`Catálogo cargado: ${next.size} referencias`;
+  if(!rows.length){alert('No se encontraron filas válidas. El TXT debe tener referencia actual, observación y referencia antigua en tres columnas separadas por tabuladores.');return;}
+  observationCatalog=next;catalogRows=rows;
+  try{localStorage.setItem('armarios_gps_catalog_v1',JSON.stringify(catalogRows));}catch(storageError){}
+  $('catalogStatus').textContent=`Catálogo cargado: ${rows.length} filas`;
   $('catalogStatus').className='status good';
-  refreshObservation();
- }catch(err){alert('No se pudo leer el archivo TXT.')}
+  refreshObservation();renderOldReferenceSearch();
+ }catch(err){alert('No se pudo leer el archivo TXT.');}
  e.target.value='';
 };
+// Recuperar el catálogo en este dispositivo si ya se había cargado anteriormente.
+try{
+ const savedCatalog=JSON.parse(localStorage.getItem('armarios_gps_catalog_v1')||'[]');
+ if(Array.isArray(savedCatalog)&&savedCatalog.length){
+  catalogRows=savedCatalog;
+  catalogRows.forEach(row=>{
+   const key=normalizeReference(row.referenciaActual);
+   if(key&&!observationCatalog.has(key))observationCatalog.set(key,{observacion:row.observacion||'',referenciaAntigua:row.referenciaAntigua||''});
+  });
+  $('catalogStatus').textContent=`Catálogo recuperado: ${catalogRows.length} filas`;
+  $('catalogStatus').className='status good';
+ }
+}catch(e){}
 </script>
 </body>
 </html>

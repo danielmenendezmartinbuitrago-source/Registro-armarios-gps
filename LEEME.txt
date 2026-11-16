@@ -1,0 +1,15 @@
+REGISTRO DE ARMARIOS ELÉCTRICOS · VERSIÓN 5
+
+Contenido:
+- index.html: aplicación web actualizada a partir del archivo facilitado.
+
+Instalación:
+1. Descomprime el ZIP.
+2. Abre index.html en un navegador compatible.
+3. Para usar GPS, abre la aplicación desde un contexto seguro (HTTPS o localhost) y concede permiso de ubicación.
+
+Notas:
+- Se conserva la clave localStorage existente "armarios_gps_v1", por lo que los registros guardados en el mismo navegador/dispositivo siguen siendo accesibles.
+- El catálogo TXT se guarda localmente después de cargarlo, para recuperarlo en próximas aperturas en el mismo navegador/dispositivo.
+- El archivo de origen facilitado era un HTML único. No incluía manifiesto ni Service Worker; por eso este paquete no se presenta como una PWA instalable/offline completa.
+- Exporta una copia JSON antes de sustituir o limpiar datos del navegador.
