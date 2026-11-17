@@ -35,6 +35,11 @@ button{font:inherit;font-weight:700;border:0;border-radius:11px;padding:13px 15p
 .empty{text-align:center;color:#71818a;padding:20px 8px}
 footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 @media(min-width:620px){main{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}}
+
+.photo-pending{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.photo-chip{font-size:12px;background:#edf4f7;border-radius:8px;padding:7px 9px;overflow-wrap:anywhere}
+.photo-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.photo-actions button{font-size:12px;padding:7px 9px}
 </style>
 </head>
 <body>
@@ -77,6 +82,12 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </div>
 <div class="field"><label for="oldRef">Referencia antigua (desde el catálogo)</label><input id="oldRef" readonly placeholder="Sin referencia antigua asociada"></div>
 <div class="field"><label for="obs">Observaciones (opcional, editable)</label><div class="voice-line"><textarea id="obs" placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea><button class="voice-btn" type="button" data-voice="obs" aria-label="Dictar observaciones">🎙️</button></div><div class="voice-help">Puedes dictar el prefijo, los dos números, la planta y las observaciones usando los micrófonos.</div></div>
+<div class="field"><label for="photoInput">Fotografías del armario</label>
+<div class="row"><button class="secondary" id="takePhotoBtn" type="button">📷 Hacer / añadir fotos</button><span class="muted" id="photoCount">Sin fotografías seleccionadas</span></div>
+<input id="photoInput" type="file" accept="image/*" capture="environment" multiple hidden>
+<div class="muted">Se guardarán asociadas al registro y se nombrarán automáticamente con la referencia: REFERENCIA_01.jpg, REFERENCIA_02.jpg… La numeración continuará en siguientes registros con la misma referencia.</div>
+<div id="pendingPhotos" class="photo-pending"></div>
+</div>
 <div id="gpsStatus" class="status">GPS pendiente. Pulsa «Obtener posición».</div>
 <div class="field">
 <label for="gpsDuration">Tiempo de medición GPS</label>
@@ -125,16 +136,27 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </main>
 <section class="card wide" aria-label="Información de la aplicación">
 <h2>Información y actualizaciones</h2>
-<div class="row"><div><strong>Registro de armarios GPS · Versión 2.5</strong><div class="muted">Actualización: 17/11/2026</div></div><button class="secondary" id="updateBtn" type="button">Comprobar actualizaciones</button></div>
+<div class="row"><div><strong>Registro de armarios GPS · Versión 2.6</strong><div class="muted">Actualización: 17/11/2026</div></div><button class="secondary" id="updateBtn" type="button">Comprobar actualizaciones</button></div>
 <div class="status" id="appStatus" style="margin-top:10px">Aplicación lista.</div>
 </section>
-<footer>Registro local · GPS del dispositivo · No se envían datos a ningún servidor</footer>
+<footer>Registro local · GPS del dispositivo · Fotografías guardadas en este dispositivo · No se envían datos a ningún servidor</footer>
 <script>
 'use strict';
 const KEY='armarios_gps_v1';
 let records=load();
 let currentPosition=null;
+let pendingPhotos=[];
+const PHOTO_DB='armarios_gps_photos_v1';
+const PHOTO_STORE='photos';
 const $=id=>document.getElementById(id);
+function openPhotoDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('Este navegador no admite almacenamiento de fotografías.'));return;}const req=indexedDB.open(PHOTO_DB,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(PHOTO_STORE))db.createObjectStore(PHOTO_STORE,{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('No se pudo abrir el almacén de fotografías.'));});}
+async function savePhotoBlob(photo){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction(PHOTO_STORE,'readwrite');tx.objectStore(PHOTO_STORE).put({id:photo.id,blob:photo.blob,name:photo.name,recordId:photo.recordId});tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error||new Error('No se pudo guardar una fotografía.'));};});}
+async function getPhotoBlob(id){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction(PHOTO_STORE,'readonly');const req=tx.objectStore(PHOTO_STORE).get(id);req.onsuccess=()=>{const value=req.result;db.close();resolve(value||null);};req.onerror=()=>{db.close();reject(req.error);};});}
+function currentReference(){const a=$('ref1').value.trim(),b=$('ref2').value.trim();if(a===''||b===''||!Number.isInteger(Number(a))||!Number.isInteger(Number(b)))return '';return $('prefix').value+'-'+String(Number(a)).padStart(2,'0')+'-'+String(Number(b)).padStart(2,'0');}
+function renderPendingPhotos(){const box=$('pendingPhotos');box.innerHTML='';$('photoCount').textContent=pendingPhotos.length?`${pendingPhotos.length} fotografía(s) preparada(s)`:'Sin fotografías seleccionadas';pendingPhotos.forEach((photo,i)=>{const chip=document.createElement('div');chip.className='photo-chip';chip.textContent=photo.name;const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='Quitar';remove.style.marginLeft='6px';remove.onclick=()=>{pendingPhotos.splice(i,1);renderPendingPhotos();};chip.append(remove);box.append(chip);});}
+function safeFileReference(ref){return String(ref).replace(/[^A-Za-z0-9_-]/g,'_');}
+function nextPhotoNumber(ref){let max=0;for(const r of records){if(String(r.referencia).toLowerCase()===ref.toLowerCase()){for(const f of (r.fotografias||[])){const m=String(f.nombre||'').match(/_(\d+)\.jpg$/i);if(m)max=Math.max(max,Number(m[1]));}}}for(const f of pendingPhotos){const m=String(f.name||'').match(/_(\d+)\.jpg$/i);if(m)max=Math.max(max,Number(m[1]));}return max+1;}
+
 function load(){try{const data=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(data)?data.filter(r=>r&&typeof r.referencia==='string'&&r.timestamp):[]}catch(e){return []}}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(records));render()}catch(e){alert('No se pudieron guardar los datos. Puede que el almacenamiento del navegador esté lleno. Exporta una copia y libera espacio.')}}
 function render(){
@@ -155,6 +177,7 @@ function render(){
   const del=document.createElement('button');del.className='danger';del.textContent='Eliminar';del.style.flex='0 0 auto';del.style.padding='7px 10px';del.onclick=()=>{if(confirm('¿Eliminar el registro '+r.referencia+'?')){records=records.filter(x=>x.id!==r.id);persist()}};
   row.append(del);el.append(title,floor,oldRef,time,gps);
   if(r.observaciones){const o=document.createElement('small');o.textContent='Observaciones: '+r.observaciones;el.append(o)}
+  if(Array.isArray(r.fotografias)&&r.fotografias.length){const photos=document.createElement('div');photos.className='photo-actions';r.fotografias.forEach(photo=>{const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent='⬇ '+photo.nombre;b.onclick=async()=>{try{const stored=await getPhotoBlob(photo.id);if(!stored||!stored.blob){alert('No se encuentra el archivo de fotografía en este dispositivo.');return;}download(stored.blob,photo.nombre);}catch(err){alert('No se pudo abrir la fotografía: '+err.message);}};photos.append(b);});el.append(photos)}
   el.append(row);$('records').append(el);
  });
 }
@@ -239,9 +262,11 @@ function getGps(){
   },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
  }catch(err){stopGpsMeasurement('No se pudo iniciar la medición GPS. Comprueba los permisos y vuelve a intentarlo.','warn');}
 }
+$('takePhotoBtn').onclick=()=>{const ref=currentReference();if(!ref){alert('Introduce primero la referencia completa del armario.');return;}$('photoInput').click();};
+$('photoInput').onchange=async e=>{const files=Array.from(e.target.files||[]);if(!files.length)return;const ref=currentReference();if(!ref){alert('Introduce primero la referencia completa.');e.target.value='';return;}let n=nextPhotoNumber(ref);for(const file of files){if(!file.type.startsWith('image/'))continue;const ext=(file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg');const name=`${safeFileReference(ref)}_${String(n).padStart(2,'0')}.${ext}`;pendingPhotos.push({id:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),name,blob:file});n++;}renderPendingPhotos();e.target.value='';};
 $('gpsBtn').onclick=getGps;
 $('gpsStopBtn').onclick=()=>stopGpsMeasurement(bestGpsPosition?'Medición detenida. Se conserva la lectura más precisa.':'Medición detenida sin obtener posición GPS.','warn');
-$('saveBtn').onclick=()=>{
+$('saveBtn').onclick=async()=>{
  const n1=$('ref1').value.trim(),n2=$('ref2').value.trim();
  const valid1=n1!==''&&Number.isInteger(Number(n1))&&Number(n1)>=0&&Number(n1)<=99;
  const valid2=n2!==''&&Number.isInteger(Number(n2))&&Number(n2)>=0&&Number(n2)<=99;
@@ -251,8 +276,13 @@ $('saveBtn').onclick=()=>{
  const duplicate=records.some(r=>r.referencia.toLowerCase()===referencia.toLowerCase());
  if(duplicate&&!confirm('Ya existe un registro con esta referencia. ¿Quieres añadir otro registro igualmente?'))return;
  const now=new Date();
- records.push({id:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim()});
- persist();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+ const id=(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random());
+ const assigned=[];let number=nextPhotoNumber(referencia);
+ try{
+  for(const photo of pendingPhotos){const ext=(photo.blob.type==='image/png'?'png':photo.blob.type==='image/webp'?'webp':'jpg');const name=`${safeFileReference(referencia)}_${String(number).padStart(2,'0')}.${ext}`;const item={...photo,name,recordId:id};await savePhotoBlob(item);assigned.push({id:item.id,nombre:name});number++;}
+ }catch(err){alert('No se pudieron guardar las fotografías: '+err.message+'\nEl registro no se ha guardado.');return;}
+ records.push({id,timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim(),fotografias:assigned});
+ persist();pendingPhotos=[];renderPendingPhotos();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 };
 $('filter').oninput=render;
 function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
