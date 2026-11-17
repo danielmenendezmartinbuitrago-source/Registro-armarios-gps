@@ -31,7 +31,7 @@ button{font:inherit;font-weight:700;border:0;border-radius:11px;padding:13px 15p
 .muted{color:#657783;font-size:12px}.stat{font-size:26px;font-weight:800}
 .records{display:grid;gap:9px}.record{border:1px solid #e0e7eb;border-radius:12px;padding:12px;display:grid;gap:6px}
 .record strong{font-size:16px}.record small{color:#637783}.record .row{align-items:center}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{flex:1;min-width:125px}
+.voice-line{display:flex;gap:7px;align-items:stretch}.voice-line>*:first-child{flex:1;min-width:0}.voice-btn{flex:0 0 auto;background:#e8eff3;color:#17384d;padding:10px 12px;min-width:48px}.voice-btn.listening{background:#ffe7e5;color:#a52d27}.voice-help{font-size:11px;color:#657783}.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{flex:1;min-width:125px}
 .empty{text-align:center;color:#71818a;padding:20px 8px}
 footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 @media(min-width:620px){main{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}}
@@ -44,7 +44,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <h2>Nuevo registro</h2>
 <div class="field"><label>Referencia del armario *</label>
 <div class="row">
-<select id="prefix" aria-label="Prefijo de referencia" style="flex:1.2;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
+<div class="voice-line" style="flex:1.2"><select id="prefix" aria-label="Prefijo de referencia" style="width:100%;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
 <option value="AMR">AMR</option>
 <option>F01</option><option>F02</option><option>F03</option><option>F03B</option>
 <option>F04</option><option>F04B</option><option>F05</option><option>F06</option>
@@ -52,9 +52,9 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <option>F11</option><option>F12</option><option>F13</option><option>F14</option>
 <option>F15</option><option>F16</option><option>F16B</option><option>F17</option>
 <option>F18</option><option>F19</option><option>F19B</option><option>F20</option>
-</select>
-<input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="min-width:0;text-align:center">
-<input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="min-width:0;text-align:center">
+</select><button class="voice-btn" type="button" data-voice="prefix" aria-label="Dictar prefijo">🎙️</button></div>
+<div class="voice-line" style="flex:1"><input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="min-width:0;text-align:center"><button class="voice-btn" type="button" data-voice="ref1" aria-label="Dictar primer número">🎙️</button></div>
+<div class="voice-line" style="flex:1"><input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="min-width:0;text-align:center"><button class="voice-btn" type="button" data-voice="ref2" aria-label="Dictar segundo número">🎙️</button></div>
 </div>
 <div class="muted">Introduce dos números enteros entre 0 y 99. Se mostrarán con dos dígitos.</div>
 </div>
@@ -66,7 +66,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <option value="Planta 2">Planta 2</option>
 <option value="Planta 3">Planta 3</option>
 <option value="Cubierta">Cubierta</option>
-</select></div>
+</select><button class="voice-btn" type="button" data-voice="floor" aria-label="Dictar planta">🎙️</button></div></div>
 <div class="field"><label>Catálogo de observaciones (TXT)</label>
 <div class="row">
 <button class="secondary" id="catalogBtn" type="button">Cargar archivo TXT</button>
@@ -76,7 +76,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div class="muted">Formato TXT: referencia actual, observación y referencia antigua, en tres columnas separadas por tabulador (TAB).</div>
 </div>
 <div class="field"><label for="oldRef">Referencia antigua (desde el catálogo)</label><input id="oldRef" readonly placeholder="Sin referencia antigua asociada"></div>
-<div class="field"><label for="obs">Observaciones (opcional, editable)</label><textarea id="obs" placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea></div>
+<div class="field"><label for="obs">Observaciones (opcional, editable)</label><div class="voice-line"><textarea id="obs" placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea><button class="voice-btn" type="button" data-voice="obs" aria-label="Dictar observaciones">🎙️</button></div><div class="voice-help">Puedes dictar el prefijo, los dos números, la planta y las observaciones usando los micrófonos.</div></div>
 <div id="gpsStatus" class="status">GPS pendiente. Pulsa «Obtener posición».</div>
 <div class="field">
 <label for="gpsDuration">Tiempo de medición GPS</label>
@@ -96,11 +96,11 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <p class="muted">La posición se obtiene al pulsar el botón GPS. Se recomienda registrar al aire libre y esperar una precisión adecuada.</p>
 </section>
 <section class="card wide">
-<h2>Buscar y seleccionar referencia del catálogo</h2>
-<div class="field"><label for="oldRefSearch">Referencia antigua (tercera columna del catálogo)</label>
-<input id="oldRefSearch" type="search" placeholder="Introduce la referencia antigua completa o una parte...">
+<h2>Buscar por referencia antigua</h2>
+<div class="field"><label for="oldRefSearch">Referencia antigua (búsqueda parcial)</label>
+<input id="oldRefSearch" type="search" placeholder="Escribe una parte de la referencia antigua...">
 </div>
-<div class="muted">Busca exclusivamente en la tercera columna del TXT. Las coincidencias exactas aparecen primero; puedes seleccionar cualquier resultado para cargar su referencia actual en el formulario superior.</div>
+<div class="muted">Busca en la tercera columna del TXT y muestra todas las referencias actuales coincidentes. Esta consulta no crea ni modifica registros.</div>
 <div id="oldRefResults" class="records" style="margin-top:12px"><div class="empty">Carga el catálogo TXT y escribe una referencia antigua para buscar.</div></div>
 </section>
 <section class="card">
@@ -125,7 +125,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </main>
 <section class="card wide" aria-label="Información de la aplicación">
 <h2>Información y actualizaciones</h2>
-<div class="row"><div><strong>Registro de armarios GPS · Versión 2.4</strong><div class="muted">Actualización: 16/11/2026</div></div><button class="secondary" id="updateBtn" type="button">Comprobar actualizaciones</button></div>
+<div class="row"><div><strong>Registro de armarios GPS · Versión 2.5</strong><div class="muted">Actualización: 17/11/2026</div></div><button class="secondary" id="updateBtn" type="button">Comprobar actualizaciones</button></div>
 <div class="status" id="appStatus" style="margin-top:10px">Aplicación lista.</div>
 </section>
 <footer>Registro local · GPS del dispositivo · No se envían datos a ningún servidor</footer>
@@ -159,6 +159,35 @@ function render(){
  });
 }
 function setGpsMessage(msg,kind=''){const e=$('gpsStatus');e.textContent=msg;e.className='status '+kind}
+// Dictado por voz en español. La posición GPS sigue siendo la del móvil.
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+function startVoice(target,button){
+ if(!SpeechRecognition){alert('El dictado por voz no está disponible en este navegador. Abre la aplicación con Google Chrome y comprueba que tiene permiso de micrófono.');return;}
+ const recognition=new SpeechRecognition();recognition.lang='es-ES';recognition.interimResults=false;recognition.maxAlternatives=1;
+ button.classList.add('listening');button.textContent='🔴';button.disabled=true;
+ recognition.onresult=event=>{
+  const spoken=event.results[0][0].transcript.trim();
+  if(target==='prefix'){
+   const clean=spoken.toUpperCase().replace(/[^A-Z0-9]/g,'');
+   const option=Array.from($('prefix').options).find(o=>o.value.toUpperCase()===clean || o.text.toUpperCase()===clean);
+   if(option){$('prefix').value=option.value;$('prefix').dispatchEvent(new Event('change'));}
+   else alert('No he reconocido un prefijo válido. Has dicho: '+spoken);
+  }else if(target==='ref1'||target==='ref2'){
+   const digits=spoken.match(/\d+/g);let value=digits?digits.join(''):'';
+   if(!value){const words={'cero':'0','uno':'1','una':'1','dos':'2','tres':'3','cuatro':'4','cinco':'5','seis':'6','siete':'7','ocho':'8','nueve':'9'};value=spoken.toLowerCase().split(/\s+/).map(w=>words[w]??'').join('');}
+   if(value!==''&&Number(value)<=99){$(target).value=String(Number(value));$(target).dispatchEvent(new Event('input'));}else alert('No he reconocido un número entre 0 y 99. Has dicho: '+spoken);
+  }else if(target==='floor'){
+   const normalized=spoken.toLowerCase();const option=Array.from($('floor').options).find(o=>o.text.toLowerCase()===normalized || o.text.toLowerCase().replace('planta ','')===normalized.replace('planta ',''));
+   if(option)$('floor').value=option.value;else alert('No he reconocido una planta de la lista. Has dicho: '+spoken);
+  }else if(target==='obs'){
+   const field=$('obs');field.value=(field.value.trim()?field.value.trim()+' ':'')+spoken;field.dispatchEvent(new Event('input'));
+  }
+ };
+ recognition.onerror=event=>{if(event.error!=='no-speech'&&event.error!=='aborted')alert('No se pudo realizar el dictado: '+event.error);};
+ recognition.onend=()=>{button.classList.remove('listening');button.textContent='🎙️';button.disabled=false;};
+ try{recognition.start();}catch(e){button.classList.remove('listening');button.textContent='🎙️';button.disabled=false;alert('No se pudo iniciar el micrófono.');}
+}
+document.querySelectorAll('[data-voice]').forEach(button=>button.addEventListener('click',()=>startVoice(button.dataset.voice,button)));
 let gpsWatchId=null, gpsTimerId=null, gpsTickId=null, gpsStartedAt=0, gpsDurationMs=60000, bestGpsPosition=null;
 function stopGpsMeasurement(message, kind=''){
  if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
@@ -322,36 +351,21 @@ function renderOldReferenceSearch(){
  const container=$('oldRefResults');
  container.innerHTML='';
  if(!catalogRows.length){container.innerHTML='<div class="empty">Carga primero el catálogo TXT.</div>';return;}
- if(!query){container.innerHTML='<div class="empty">Escribe la referencia antigua, completa o parcialmente, para buscar.</div>';return;}
- // La búsqueda se realiza exclusivamente sobre la tercera columna (referencia antigua).
- // Orden de precisión: coincidencia exacta, comienzo de referencia y coincidencia interna.
- const matches=catalogRows.map((row,index)=>{
-  const old=normalizeReference(row.referenciaAntigua);
-  let rank=99;
-  if(old===query)rank=0;
-  else if(old.startsWith(query))rank=1;
-  else if(old.includes(query))rank=2;
-  return {row,index,rank};
- }).filter(item=>item.rank<99)
-   .sort((a,b)=>a.rank-b.rank || normalizeReference(a.row.referenciaAntigua).localeCompare(normalizeReference(b.row.referenciaAntigua)) || a.index-b.index);
- if(!matches.length){container.innerHTML='<div class="empty">No se encontraron referencias antiguas que coincidan con «'+$('oldRefSearch').value.trim()+'».</div>';return;}
- const heading=document.createElement('div');heading.className='muted';
- heading.textContent=`${matches.length} coincidencia(s). Primero se muestran las más precisas.`;
- container.append(heading);
- matches.forEach(({row,rank})=>{
-  const item=document.createElement('div');item.className='record';item.tabIndex=0;
-  item.setAttribute('role','button');item.setAttribute('aria-label','Seleccionar '+(row.referenciaActual||'referencia actual'));
+ if(!query){container.innerHTML='<div class="empty">Escribe una parte de la referencia antigua para buscar.</div>';return;}
+ const matches=catalogRows.filter(row=>normalizeReference(row.referenciaAntigua).includes(query));
+ if(!matches.length){container.innerHTML='<div class="empty">No se encontraron coincidencias.</div>';return;}
+ const heading=document.createElement('div');heading.className='muted';heading.textContent=`${matches.length} coincidencia(s) encontrada(s)`;container.append(heading);
+ matches.forEach(row=>{
+  const item=document.createElement('div');item.className='record';item.tabIndex=0;item.setAttribute('role','button');item.setAttribute('aria-label','Seleccionar '+(row.referenciaActual||'referencia actual'));
   item.style.cursor='pointer';
   item.addEventListener('click',()=>selectCatalogReference(row));
   item.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCatalogReference(row);}});
   const current=document.createElement('strong');current.textContent=row.referenciaActual||'(Sin referencia actual)';
-  const old=document.createElement('small');old.textContent='Referencia antigua (columna 3): '+(row.referenciaAntigua||'(vacía)');
-  const precision=document.createElement('small');
-  precision.textContent=rank===0?'Coincidencia exacta':rank===1?'La referencia comienza por el texto buscado':'Coincidencia dentro de la referencia';
-  item.append(current,old,precision);
+  const old=document.createElement('small');old.textContent='Referencia antigua: '+row.referenciaAntigua;
+  item.append(current,old);
   if(row.observacion){const note=document.createElement('small');note.textContent='Observaciones: '+row.observacion;item.append(note);}
   const choose=document.createElement('button');
-  choose.type='button';choose.className='secondary';choose.textContent='Seleccionar y pasar al formulario';
+  choose.type='button';choose.className='secondary';choose.textContent='Seleccionar referencia';
   choose.style.width='100%';
   choose.onclick=event=>{event.stopPropagation();selectCatalogReference(row)};
   item.append(choose);
