@@ -1,0 +1,38 @@
+LISTADO DE ARMARIOS ELECTRICOS - INTEGRACION DE CARPETAS Y ARCHIVOS TXT
+
+Archivo: modArmarios.bas
+
+Esta version del modulo incorpora la inicializacion automatica de la estructura:
+
+[CARPETA DONDE ESTA GUARDADO EL LIBRO]/
+  ARMARIOS ELECTRICOS/
+    FOTOS/
+      AMR/
+      F01/
+      F02/
+      F03/ ... (se crean leyendo los prefijos de CONFIGURACION)
+    REGISTROS/
+      CATALOGO_ARMARIOS.txt
+      REGISTRO_ARMARIOS.txt
+
+FUNCIONAMIENTO
+- Al abrir el libro con macros habilitadas se comprueba/crea la estructura.
+- Las subcarpetas de FOTOS se generan a partir de los prefijos de CONFIGURACION.
+- CATALOGO_ARMARIOS.txt se genera como exportacion completa del contenido de CATALOGO.
+- REGISTRO_ARMARIOS.txt conserva un diario acumulativo de altas y modificaciones.
+- Tras cada alta o modificacion se actualizan ambos archivos TXT.
+- Los TXT se escriben en Unicode (UTF-16) para conservar correctamente acentos y caracteres.
+
+INSTALACION
+1. Abre LISTADO DE ARMARIOS ELECTRICOS.xls en Excel de escritorio.
+2. Pulsa ALT+F11.
+3. En el proyecto VBA, elimina el modulo modArmarios anterior (si existe).
+4. Usa Archivo > Importar archivo... e importa este modArmarios.bas.
+5. Guarda el libro como LISTADO DE ARMARIOS ELECTRICOS.xls, manteniendo el formato Excel 97-2003 habilitado para macros.
+6. Cierra y vuelve a abrir el libro con las macros habilitadas.
+
+IMPORTANTE
+- La carpeta raiz se crea en la misma ubicacion que el libro Excel.
+- El libro debe estar guardado antes de inicializar el sistema.
+- Esta entrega contiene el modulo VBA actualizado, no un libro con el proyecto VBA ya incrustado.
+- Las fotografias aun no se copian ni se renombran automaticamente: esta entrega prepara sus carpetas por prefijo.
