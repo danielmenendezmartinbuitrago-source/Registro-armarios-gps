@@ -49,7 +49,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <h2>Nuevo registro</h2>
 <div class="field"><label>Referencia del armario *</label>
 <div class="row">
-<div class="voice-line" style="flex:1.2"><select id="prefix" aria-label="Prefijo de referencia" style="width:100%;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
+<div class="voice-line" style="width:100%"><select id="prefix" aria-label="Prefijo de referencia" style="flex:1;min-width:0;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
 <option value="AMR">AMR</option>
 <option>F01</option><option>F02</option><option>F03</option><option>F03B</option>
 <option>F04</option><option>F04B</option><option>F05</option><option>F06</option>
@@ -57,11 +57,12 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <option>F11</option><option>F12</option><option>F13</option><option>F14</option>
 <option>F15</option><option>F16</option><option>F16B</option><option>F17</option>
 <option>F18</option><option>F19</option><option>F19B</option><option>F20</option>
-</select><button class="voice-btn" type="button" data-voice="prefix" aria-label="Dictar prefijo">🎙️</button></div>
-<div class="voice-line" style="flex:1"><input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="min-width:0;text-align:center"><button class="voice-btn" type="button" data-voice="ref1" aria-label="Dictar primer número">🎙️</button></div>
-<div class="voice-line" style="flex:1"><input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="min-width:0;text-align:center"><button class="voice-btn" type="button" data-voice="ref2" aria-label="Dictar segundo número">🎙️</button></div>
+</select>
+<input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="flex:1;min-width:0;text-align:center">
+<input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="flex:1;min-width:0;text-align:center">
+<button class="voice-btn" type="button" data-voice="reference" aria-label="Dictar referencia completa" title="Dictar referencia completa">🎙️</button>
 </div>
-<div class="muted">Introduce dos números enteros entre 0 y 99. Se mostrarán con dos dígitos.</div>
+<div class="muted">Puedes escribir la referencia o pulsar el único micrófono y decirla completa: «F cero uno, guion, uno dos, guion, cero cinco». Se mostrará como F01-12-05.</div>
 </div>
 <div class="field"><label for="floor">Planta / nivel *</label>
 <select id="floor" style="width:100%;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
@@ -81,7 +82,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div class="muted">Formato TXT: referencia actual, observación y referencia antigua, en tres columnas separadas por tabulador (TAB).</div>
 </div>
 <div class="field"><label for="oldRef">Referencia antigua (desde el catálogo)</label><input id="oldRef" readonly placeholder="Sin referencia antigua asociada"></div>
-<div class="field"><label for="obs">Observaciones (opcional, editable)</label><div class="voice-line"><textarea id="obs" placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea><button class="voice-btn" type="button" data-voice="obs" aria-label="Dictar observaciones">🎙️</button></div><div class="voice-help">Puedes dictar el prefijo, los dos números, la planta y las observaciones usando los micrófonos.</div></div>
+<div class="field"><label for="obs">Observaciones (opcional, editable)</label><div class="voice-line"><textarea id="obs" placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea><button class="voice-btn" type="button" data-voice="obs" aria-label="Dictar observaciones">🎙️</button></div><div class="voice-help">El micrófono de esta casilla dicta la referencia completa. También puedes dictar aquí las observaciones.</div></div>
 <div class="field"><label for="photoInput">Fotografías del armario</label>
 <div class="row"><button class="secondary" id="takePhotoBtn" type="button">📷 Hacer / añadir fotos</button><span class="muted" id="photoCount">Sin fotografías seleccionadas</span></div>
 <input id="photoInput" type="file" accept="image/*" capture="environment" multiple hidden>
@@ -182,28 +183,57 @@ function render(){
  });
 }
 function setGpsMessage(msg,kind=''){const e=$('gpsStatus');e.textContent=msg;e.className='status '+kind}
-// Dictado por voz en español. La posición GPS sigue siendo la del móvil.
+// Dictado por voz en español. La referencia completa se dicta con un único botón.
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+const digitWords={cero:'0',zero:'0',uno:'1',una:'1',dos:'2',tres:'3',cuatro:'4',cinco:'5',seis:'6',siete:'7',ocho:'8',nueve:'9'};
+function spokenDigits(value){
+ const text=String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const tokens=text.match(/[a-z]+|\d+/g)||[];let result='';
+ for(const token of tokens){if(/^\d+$/.test(token))result+=token;else if(Object.prototype.hasOwnProperty.call(digitWords,token))result+=digitWords[token];}
+ return result;
+}
+function parseSpokenReference(spoken){
+ let parts=String(spoken).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/guion|guión|guioncito/g,'|').replace(/[–—-]/g,'|').split('|').map(x=>x.trim()).filter(Boolean);
+ if(parts.length!==3){
+  const compact=String(spoken).toUpperCase().replace(/\bE(FE)?\b/g,'F').replace(/[^A-Z0-9]/g,'');
+  const m=compact.match(/^(AMR|F\d{2}B?|F\d{1,2}B?)(\d{1,2})(\d{1,2})$/);
+  if(m)parts=[m[1],m[2],m[3]];
+ }
+ if(parts.length!==3)return null;
+ let prefixText=parts[0].toUpperCase().replace(/\bEFE\b/g,'F').replace(/\bEF(E)?\b/g,'F').replace(/[^A-Z0-9\s]/g,' ').trim();
+ let prefixMatch=prefixText.match(/^(AMR|F)\s*(.*)$/);
+ if(!prefixMatch)return null;
+ let prefix=prefixMatch[1];
+ if(prefix==='F'){
+  const suffix=prefixMatch[2].trim();
+  if(suffix){
+   const suffixDigits=spokenDigits(suffix);
+   if(suffixDigits.length!==2)return null;
+   prefix+=''+suffixDigits;
+  }
+ }
+ const option=Array.from($('prefix').options).find(o=>o.value.toUpperCase()===prefix);
+ const n1=spokenDigits(parts[1]),n2=spokenDigits(parts[2]);
+ if(!option||!n1||!n2||n1.length>2||n2.length>2||Number(n1)>99||Number(n2)>99)return null;
+ return {prefix:option.value,n1:String(Number(n1)),n2:String(Number(n2))};
+}
 function startVoice(target,button){
  if(!SpeechRecognition){alert('El dictado por voz no está disponible en este navegador. Abre la aplicación con Google Chrome y comprueba que tiene permiso de micrófono.');return;}
- const recognition=new SpeechRecognition();recognition.lang='es-ES';recognition.interimResults=false;recognition.maxAlternatives=1;
+ const recognition=new SpeechRecognition();recognition.lang='es-ES';recognition.interimResults=false;recognition.maxAlternatives=3;
  button.classList.add('listening');button.textContent='🔴';button.disabled=true;
  recognition.onresult=event=>{
-  const spoken=event.results[0][0].transcript.trim();
-  if(target==='prefix'){
-   const clean=spoken.toUpperCase().replace(/[^A-Z0-9]/g,'');
-   const option=Array.from($('prefix').options).find(o=>o.value.toUpperCase()===clean || o.text.toUpperCase()===clean);
-   if(option){$('prefix').value=option.value;$('prefix').dispatchEvent(new Event('change'));}
-   else alert('No he reconocido un prefijo válido. Has dicho: '+spoken);
-  }else if(target==='ref1'||target==='ref2'){
-   const digits=spoken.match(/\d+/g);let value=digits?digits.join(''):'';
-   if(!value){const words={'cero':'0','uno':'1','una':'1','dos':'2','tres':'3','cuatro':'4','cinco':'5','seis':'6','siete':'7','ocho':'8','nueve':'9'};value=spoken.toLowerCase().split(/\s+/).map(w=>words[w]??'').join('');}
-   if(value!==''&&Number(value)<=99){$(target).value=String(Number(value));$(target).dispatchEvent(new Event('input'));}else alert('No he reconocido un número entre 0 y 99. Has dicho: '+spoken);
+  const alternatives=Array.from(event.results[0]||[]).map(item=>item.transcript.trim());
+  if(target==='reference'){
+   let parsed=null,spoken=alternatives[0]||'';
+   for(const candidate of alternatives){parsed=parseSpokenReference(candidate);if(parsed){spoken=candidate;break;}}
+   if(parsed){$('prefix').value=parsed.prefix;$('ref1').value=parsed.n1;$('ref2').value=parsed.n2;$('prefix').dispatchEvent(new Event('change'));$('ref1').dispatchEvent(new Event('input'));$('ref2').dispatchEvent(new Event('input'));}
+   else alert('No he podido interpretar la referencia completa. Di, por ejemplo: «F cero uno, guion, uno dos, guion, cero cinco». Se ha reconocido: '+spoken);
   }else if(target==='floor'){
-   const normalized=spoken.toLowerCase();const option=Array.from($('floor').options).find(o=>o.text.toLowerCase()===normalized || o.text.toLowerCase().replace('planta ','')===normalized.replace('planta ',''));
+   const spoken=alternatives[0]||'';const normalized=spoken.toLowerCase();const option=Array.from($('floor').options).find(o=>o.text.toLowerCase()===normalized||o.text.toLowerCase().replace('planta ','')===normalized.replace('planta ',''));
    if(option)$('floor').value=option.value;else alert('No he reconocido una planta de la lista. Has dicho: '+spoken);
   }else if(target==='obs'){
-   const field=$('obs');field.value=(field.value.trim()?field.value.trim()+' ':'')+spoken;field.dispatchEvent(new Event('input'));
+   const spoken=alternatives[0]||'';const field=$('obs');field.value=(field.value.trim()?field.value.trim()+' ':'')+spoken;field.dispatchEvent(new Event('input'));
   }
  };
  recognition.onerror=event=>{if(event.error!=='no-speech'&&event.error!=='aborted')alert('No se pudo realizar el dictado: '+event.error);};
