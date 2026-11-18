@@ -1,6 +1,6 @@
-# Registro de armarios eléctricos GPS · Versión 2.8
+# Registro de armarios eléctricos GPS · Versión 2.9
 
-**Versión:** 2.8  
+**Versión:** 2.9  
 **Fecha de actualización:** 18/11/2026
 
 Aplicación web estática instalable como PWA para registrar armarios eléctricos con referencia, planta, observaciones de catálogo, fecha/hora y posición GPS.
@@ -14,7 +14,11 @@ Sube **el contenido de esta carpeta** a la raíz del repositorio. En **Settings 
 - Referencias con formato `PREFIJO-XX-XX`.
 - Medición GPS de 30, 60, 90 o 120 segundos, guardando la lectura de mayor precisión.
 - Catálogo TXT de tres columnas separadas por tabuladores: referencia actual, observación y referencia antigua.
-- Búsqueda parcial y por voz de la referencia antigua. Al seleccionar un resultado se recuperan la referencia actual y sus observaciones.
+- Búsqueda parcial y por voz de la referencia antigua.
+- Dictado por voz de la referencia nueva con interpretación de referencias habladas por grupos separados por «guion».
+- Al entrar en los campos de referencia nueva se limpia la búsqueda antigua y se cierra su lista de coincidencias.
+- Los campos de referencia nueva mantienen proporción 2:1:1 y ambos micrófonos tienen el mismo tamaño.
+- La sección de registros no incluye la opción de borrado masivo. Al seleccionar un resultado se recuperan la referencia actual y sus observaciones.
 - Captura de varias fotografías por armario desde la cámara del móvil.
 - Fotografías guardadas localmente en IndexedDB con nombres correlativos `PREFIJO-XX-XX_01.jpg`, `_02.jpg`, etc.
 - Exportación Excel (`.xlsx`) y TXT delimitado por `;`, con una fila por registro e incluyendo los nombres de las fotografías.
@@ -28,9 +32,9 @@ El catálogo se selecciona desde el formulario. La aplicación web no puede escr
 
 ## Archivos
 
-- `index.html`: aplicación (identificada como versión 2.8).
+- `index.html`: aplicación (identificada como versión 2.9).
 - `manifest.webmanifest`: configuración PWA.
-- `sw.js`: Service Worker y caché de la versión 2.8.
+- `sw.js`: Service Worker y caché de la versión 2.9.
 - `icon-192.png` y `icon-512.png`: iconos.
 - `.nojekyll`: configuración de GitHub Pages.
 - `modArmarios.bas`: módulo VBA para la integración de escritorio.

@@ -1,18 +1,22 @@
-REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 2.8 · 18/11/2026
+REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 2.9 · 18/11/2026
 
 IDENTIFICACION DE VERSION
-La aplicacion muestra la version 2.8 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v2.8.
+La aplicacion muestra la version 2.9 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v2.9.
 
 CONTENIDO
-- index.html: aplicacion principal, version 2.8.
+- index.html: aplicacion principal, version 2.9.
 - manifest.webmanifest: configuracion de instalacion PWA.
-- sw.js: Service Worker y cache de la version 2.8.
+- sw.js: Service Worker y cache de la version 2.9.
 - icon-192.png e icon-512.png: iconos de la aplicacion.
 - .nojekyll: evita el procesamiento de GitHub Pages con Jekyll.
 - modArmarios.bas: modulo VBA de escritorio.
 - LEEME_INTEGRACION.txt: instrucciones de integracion de escritorio.
 
 FUNCIONES
+- Se elimina el botón de borrado masivo de registros.
+- La referencia nueva incluye dictado por voz con formato PREFIJO-XX-XX.
+- Al entrar en la referencia nueva se limpia inmediatamente la búsqueda antigua y su desplegable.
+- Los campos de referencia nueva tienen proporción 2:1:1 y el micrófono tiene el mismo tamaño que el de referencia antigua.
 - Alta de armarios con referencia PREFIJO-XX-XX.
 - Campos numericos compactos y selector de prefijo mas ancho.
 - Medicion GPS seleccionable de 30, 60, 90 o 120 segundos, conservando la lectura de mayor precision.

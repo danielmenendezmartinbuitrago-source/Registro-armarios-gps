@@ -1,5 +1,5 @@
 'use strict';
-const CACHE_NAME = 'registro-armarios-gps-v2.8';
+const CACHE_NAME = 'registro-armarios-gps-v2.9';
 const APP_SHELL = [
   './',
   './index.html',
