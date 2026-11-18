@@ -1,12 +1,12 @@
-REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 2.7 · 18/11/2026
+REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 2.8 · 18/11/2026
 
 IDENTIFICACION DE VERSION
-La aplicacion muestra la version 2.7 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v2.7.
+La aplicacion muestra la version 2.8 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v2.8.
 
 CONTENIDO
-- index.html: aplicacion principal, version 2.7.
+- index.html: aplicacion principal, version 2.8.
 - manifest.webmanifest: configuracion de instalacion PWA.
-- sw.js: Service Worker y cache de la version 2.7.
+- sw.js: Service Worker y cache de la version 2.8.
 - icon-192.png e icon-512.png: iconos de la aplicacion.
 - .nojekyll: evita el procesamiento de GitHub Pages con Jekyll.
 - modArmarios.bas: modulo VBA de escritorio.

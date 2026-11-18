@@ -1,6 +1,6 @@
-# Registro de armarios eléctricos GPS · Versión 2.7
+# Registro de armarios eléctricos GPS · Versión 2.8
 
-**Versión:** 2.7  
+**Versión:** 2.8  
 **Fecha de actualización:** 18/11/2026
 
 Aplicación web estática instalable como PWA para registrar armarios eléctricos con referencia, planta, observaciones de catálogo, fecha/hora y posición GPS.
@@ -28,9 +28,9 @@ El catálogo se selecciona desde el formulario. La aplicación web no puede escr
 
 ## Archivos
 
-- `index.html`: aplicación (identificada como versión 2.7).
+- `index.html`: aplicación (identificada como versión 2.8).
 - `manifest.webmanifest`: configuración PWA.
-- `sw.js`: Service Worker y caché de la versión 2.7.
+- `sw.js`: Service Worker y caché de la versión 2.8.
 - `icon-192.png` y `icon-512.png`: iconos.
 - `.nojekyll`: configuración de GitHub Pages.
 - `modArmarios.bas`: módulo VBA para la integración de escritorio.
