@@ -32,7 +32,12 @@ button{font:inherit;font-weight:700;border:0;border-radius:11px;padding:13px 15p
 .reference-entry input{min-width:0;text-align:center}
 .mic-button{width:58px;min-width:58px;height:58px;padding:0;border-radius:12px;background:#dceffb;color:#123b56;font-size:25px;display:flex;align-items:center;justify-content:center}
 .observation-entry{display:grid;grid-template-columns:minmax(0,1fr) 58px;gap:9px;align-items:stretch}
-.observation-entry .mic-button{height:100%;min-height:70px}
+.observation-entry .mic-button{height:100%;min-height:58px}
+.oldref-matches{display:grid;gap:6px}
+.oldref-match{width:100%;text-align:left;background:#edf4f8;border:1px solid #d4e2ea;color:#17384d;padding:10px 12px;font-weight:500}
+.oldref-match strong{display:block;font-size:14px}
+.oldref-match small{display:block;color:#5d707c;font-size:12px;margin-top:3px}
+.oldref-empty{font-size:12px;color:#71818a;padding:5px 2px}
 .catalog-observation{white-space:pre-wrap;min-height:66px;background:#e8f2f8;border:1px solid #b8d7e8;color:#314b5b}
 .photo-list{display:grid;gap:4px;margin-top:6px}.photo-list span{font-size:12px;color:#405563;overflow-wrap:anywhere}
 .export-card{grid-column:1/-1}
@@ -93,7 +98,15 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div class="muted">Formato TXT: referencia actual, observación y referencia antigua, en tres columnas separadas por tabulador (TAB).</div>
 </div>
 <div class="field"><label>Observaciones del catálogo</label><div class="status catalog-observation" id="catalogObservation">Al seleccionar una referencia, aquí aparecerá su observación del catálogo.</div></div>
-<div class="field"><label for="oldRef">Referencia antigua (desde el catálogo)</label><input id="oldRef" readonly placeholder="Sin referencia antigua asociada"></div>
+<div class="field"><label for="oldRef">Buscar referencia antigua (catálogo)</label>
+<div class="observation-entry">
+<input id="oldRef" autocomplete="off" placeholder="Escribe una referencia antigua, incluso parcialmente…">
+<button class="mic-button" id="oldRefMicBtn" type="button" aria-label="Buscar referencia antigua por voz" title="Buscar referencia antigua por voz">🎙</button>
+</div>
+<div class="muted">Puedes escribir solo una parte o dictar la referencia. Selecciona una coincidencia para recuperar el armario asociado.</div>
+<div class="muted" id="oldRefVoiceStatus" aria-live="polite"></div>
+<div id="oldRefMatches" class="oldref-matches" aria-live="polite"></div>
+</div>
 <div class="field"><label for="obs">Observaciones (opcional, editable)</label>
 <div class="observation-entry"><textarea id="obs" placeholder="Añade aquí observaciones propias…"></textarea><button class="mic-button" id="obsMicBtn" type="button" aria-label="Dictar observaciones">🎙</button></div>
 <div class="muted">El micrófono de esta casilla dicta las observaciones.</div></div>
@@ -311,16 +324,107 @@ function startDictation(target,statusId,isReference){
 $('refMicBtn').onclick=()=>startDictation(null,'refVoiceStatus',true);
 $('obsMicBtn').onclick=()=>startDictation('obs',null,false);
 
+$('oldRefMicBtn').onclick=()=>{
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){alert('El reconocimiento de voz no está disponible en este navegador. Prueba con Chrome.');return;}
+ const recognition=new SR();recognition.lang='es-ES';recognition.interimResults=false;recognition.maxAlternatives=1;
+ $('oldRefVoiceStatus').textContent='Escuchando referencia antigua…';
+ recognition.onresult=e=>{
+  const spoken=e.results[0][0].transcript||'';
+  $('oldRef').value=spoken;
+  showOldReferenceMatches();
+  $('oldRefVoiceStatus').textContent='Búsqueda por voz: '+spoken;
+ };
+ recognition.onerror=()=>{$('oldRefVoiceStatus').textContent='No se pudo completar el dictado. Inténtalo de nuevo.';};
+ recognition.start();
+};
+
+
 
 // Catálogo TXT: referencia actual, observación y referencia antigua, separados por TAB.
 let observationCatalog = new Map();
 function normalizeReference(value){return String(value||'').trim().toUpperCase().replace(/\s+/g,'');}
+
+function normalizeSearch(value){
+ return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+function editDistance(a,b){
+ const row=Array.from({length:b.length+1},(_,i)=>i);
+ for(let i=1;i<=a.length;i++){
+  let prev=row[0];row[0]=i;
+  for(let j=1;j<=b.length;j++){
+   const old=row[j];
+   row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));
+   prev=old;
+  }
+ }
+ return row[b.length];
+}
+function findOldReferenceMatches(query){
+ const q=normalizeSearch(query);
+ if(!q)return [];
+ const matches=[];
+ for(const [current,entry] of observationCatalog){
+  const old=String(entry.referenciaAntigua||'').trim();
+  if(!old)continue;
+  const candidate=normalizeSearch(old);
+  let score=0;
+  if(candidate===q)score=100;
+  else if(candidate.includes(q))score=85-(candidate.length-q.length)*0.15;
+  else if(q.includes(candidate))score=75-(q.length-candidate.length)*0.2;
+  else{
+   const words=String(old).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+   const qWords=String(query).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+   const shared=qWords.filter(w=>words.some(c=>c.includes(w)||w.includes(c))).length;
+   const distance=editDistance(q,candidate);
+   const tolerance=Math.max(1,Math.floor(Math.min(q.length,candidate.length)*0.22));
+   if(shared)score=50+shared*5-distance;
+   else if(distance<=tolerance)score=40-distance*3;
+  }
+  if(score>0)matches.push({current,old,observacion:entry.observacion||'',score});
+ }
+ return matches.sort((a,b)=>b.score-a.score).slice(0,8);
+}
+function showOldReferenceMatches(){
+ const query=$('oldRef').value.trim(),box=$('oldRefMatches');
+ box.innerHTML='';
+ if(!query){return;}
+ if(!observationCatalog.size){box.innerHTML='<div class="oldref-empty">Carga primero el catálogo TXT.</div>';return;}
+ const matches=findOldReferenceMatches(query);
+ if(!matches.length){box.innerHTML='<div class="oldref-empty">No hay coincidencias. Prueba con menos caracteres o con otra parte de la referencia.</div>';return;}
+ matches.forEach(match=>{
+  const button=document.createElement('button');
+  button.type='button';button.className='oldref-match';
+  const title=document.createElement('strong');title.textContent=match.old;
+  const detail=document.createElement('small');detail.textContent='Armario actual: '+match.current;
+  button.append(title,detail);
+  button.addEventListener('click',()=>{
+   const parts=match.current.match(/^(AMR|F\d{2}B?)-(\d{2})-(\d{2})$/i);
+   if(parts){
+    $('prefix').value=parts[1].toUpperCase();
+    $('ref1').value=String(Number(parts[2]));
+    $('ref2').value=String(Number(parts[3]));
+   }
+   $('oldRef').value=match.old;
+   $('oldRefMatches').innerHTML='';
+   $('catalogObservation').textContent=match.observacion||'Sin observaciones en el catálogo.';
+   $('catalogStatus').textContent='Referencia antigua localizada: '+match.old;
+   $('catalogStatus').className='status good';
+   $('oldRefVoiceStatus').textContent='Armario asociado seleccionado: '+match.current;
+  });
+  box.append(button);
+ });
+}
+$('oldRef').addEventListener('input',showOldReferenceMatches);
+
 function buildReference(){
  const a=$('ref1').value.trim(),b=$('ref2').value.trim();
  if(a===''||b===''||!Number.isInteger(Number(a))||!Number.isInteger(Number(b))||Number(a)<0||Number(a)>99||Number(b)<0||Number(b)>99)return '';
  return $('prefix').value+'-'+String(Number(a)).padStart(2,'0')+'-'+String(Number(b)).padStart(2,'0');
 }
 function refreshObservation(){
+ $('oldRefMatches').innerHTML='';
  const ref=buildReference();
  if(!ref){
   $('oldRef').value='';
