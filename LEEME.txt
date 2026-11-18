@@ -1,35 +1,34 @@
-REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 2.9 · 18/11/2026
+REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 3.0 · 18/11/2026
 
 IDENTIFICACION DE VERSION
-La aplicacion muestra la version 2.9 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v2.9.
+La aplicacion muestra la version 3.0 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v3.0.
 
 CONTENIDO
-- index.html: aplicacion principal, version 2.9.
+- index.html: aplicacion principal, version 3.0.
 - manifest.webmanifest: configuracion de instalacion PWA.
-- sw.js: Service Worker y cache de la version 2.9.
+- sw.js: Service Worker y cache de la version 3.0.
 - icon-192.png e icon-512.png: iconos de la aplicacion.
 - .nojekyll: evita el procesamiento de GitHub Pages con Jekyll.
 - modArmarios.bas: modulo VBA de escritorio.
 - LEEME_INTEGRACION.txt: instrucciones de integracion de escritorio.
 
 FUNCIONES
-- Se elimina el botón de borrado masivo de registros.
-- La referencia nueva incluye dictado por voz con formato PREFIJO-XX-XX.
-- Al entrar en la referencia nueva se limpia inmediatamente la búsqueda antigua y su desplegable.
-- Los campos de referencia nueva tienen proporción 2:1:1 y el micrófono tiene el mismo tamaño que el de referencia antigua.
 - Alta de armarios con referencia PREFIJO-XX-XX.
 - Campos numericos compactos y selector de prefijo mas ancho.
 - Medicion GPS seleccionable de 30, 60, 90 o 120 segundos, conservando la lectura de mayor precision.
 - Detencion manual de la medicion y avisos de estado.
 - Catalogo TXT de tres columnas separadas por TAB: referencia actual, observacion y referencia antigua.
-- Busqueda parcial de referencia antigua en la tercera columna, con dictado por voz cuando el navegador lo admite.
+- Busqueda parcial de referencia antigua en la tercera columna. Se han eliminado todos los controles y funciones de entrada por audio.
 - Seleccion de resultado para recuperar la referencia actual y sus observaciones.
-- Captura de varias fotografias por armario, almacenadas localmente en IndexedDB con nombres correlativos.
+- Captura de varias fotografias por armario, guardadas como archivos JPEG en REGISTROS/FOTOGRAFIAS/[PREFIJO]/ con nombres correlativos.
+- Creacion automatica de las 26 subcarpetas: F01, F02, F03, F03B, F04, F04B, F05, F06, F07, F08, F09, F10, F11, F12, F13, F14, F15, F16, F16B, F17, F18, F19, F19B, F20, F41 y AMR.
+- Registros guardados en REGISTRO_ARMARIOS.json y copia del catalogo en CATALOGO_ARMARIOS.txt dentro de REGISTROS.
+- Migracion inicial de registros y fotografias antiguos desde localStorage/IndexedDB, si existen.
 - Exportacion Excel (.xlsx) y TXT delimitado por punto y coma (;), con una fila por registro.
 - Listado local de registros, filtro por referencia y enlace a Google Maps.
 
 DATOS Y PRIVACIDAD
-Los registros y el catalogo se almacenan localmente en el navegador/dispositivo mediante localStorage. Las fotografias se guardan localmente en IndexedDB. No se envian a GitHub ni a un servidor y no se sincronizan entre dispositivos. La exportacion TXT y Excel incluye los nombres de las fotografias, pero no incorpora los archivos de imagen.
+Los registros, el catalogo y las fotografias se guardan en la carpeta REGISTROS seleccionada por el usuario. La aplicacion utiliza File System Access API; Chrome puede solicitar permiso de nuevo al abrirla. No se envian a GitHub ni a un servidor y no se sincronizan entre dispositivos. La exportacion TXT y Excel incluye los nombres de las fotografias, pero no incorpora los archivos de imagen.
 
 PUBLICACION EN GITHUB PAGES
 1. Sube el contenido de esta carpeta a la raiz del repositorio, no la carpeta contenedora.
@@ -37,4 +36,4 @@ PUBLICACION EN GITHUB PAGES
 3. Selecciona Deploy from a branch, rama main y carpeta /(root).
 4. Activa HTTPS si no esta activado automaticamente.
 
-La geolocalizacion requiere HTTPS (o localhost) y permiso de ubicacion. El dictado por voz depende del soporte y los permisos del navegador. La primera carga necesita conexion para descargar los recursos de la PWA.
+La geolocalizacion requiere HTTPS (o localhost) y permiso de ubicacion. La seleccion de carpetas requiere Chrome/Chromium compatible (Chrome 132 o posterior en Android) y HTTPS. La primera carga necesita conexion para descargar los recursos de la PWA.

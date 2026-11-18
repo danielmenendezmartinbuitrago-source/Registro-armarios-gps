@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#123b56">
-<meta name="description" content="Registro geolocalizado de armarios eléctricos · Versión 2.9">
-<meta name="application-version" content="2.9">
+<meta name="description" content="Registro geolocalizado de armarios eléctricos · Versión 3.0">
+<meta name="application-version" content="3.0">
 <title>Registro de armarios eléctricos</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172633;background:#f2f5f7}
@@ -36,8 +36,16 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </style>
 </head>
 <body>
-<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Versión 2.9 · Actualizado: --</small></header>
+<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Versión 3.0 · Actualizado: --</small></header>
 <main>
+<section class="card wide" id="storageCard">
+<h2>Almacenamiento de registros y fotografías</h2>
+<div class="row">
+<button class="secondary" id="folderBtn" type="button">📁 Seleccionar carpeta REGISTROS</button>
+<div class="status warn" id="storageStatus">Selecciona la carpeta REGISTROS para comenzar.</div>
+</div>
+<p class="muted">Los registros se guardarán en REGISTRO_ARMARIOS.json y las fotografías en FOTOGRAFIAS, organizadas por prefijo. La carpeta debe seleccionarse una vez y Chrome puede volver a pedir permiso al abrir la aplicación.</p>
+</section>
 <section class="card">
 <h2>Nuevo registro</h2>
 <div class="field"><label>Referencia del armario *</label>
@@ -49,11 +57,10 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <option>F07</option><option>F08</option><option>F09</option><option>F10</option>
 <option>F11</option><option>F12</option><option>F13</option><option>F14</option>
 <option>F15</option><option>F16</option><option>F16B</option><option>F17</option>
-<option>F18</option><option>F19</option><option>F19B</option><option>F20</option>
+<option>F18</option><option>F19</option><option>F19B</option><option>F20</option><option>F41</option>
 </select>
-<input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="flex:1 1 0;min-width:0;text-align:center">
-<input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="flex:1 1 0;min-width:0;text-align:center">
-<button class="secondary" id="newRefVoiceBtn" type="button" aria-label="Dictar referencia nueva" title="Dictar referencia nueva" style="flex:0 0 64px;padding:10px;font-size:22px">🎙️</button>
+<input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="flex:0.5 1 0;min-width:0;text-align:center">
+<input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="flex:0.5 1 0;min-width:0;text-align:center">
 </div>
 <div class="muted">Introduce dos números enteros entre 0 y 99. Se mostrarán con dos dígitos.</div>
 </div>
@@ -76,8 +83,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </div>
 <div class="field"><label for="oldRef">Referencia antigua (consulta del catálogo)</label>
 <div class="row" style="flex-wrap:nowrap;align-items:stretch">
-<input id="oldRef" type="search" placeholder="Escribe o dicta la referencia antigua..." autocomplete="off" style="min-width:0">
-<button class="secondary" id="oldRefVoiceBtn" type="button" aria-label="Dictar referencia antigua" title="Dictar referencia antigua" style="flex:0 0 64px;padding:10px;font-size:22px">🎙️</button>
+<input id="oldRef" type="search" placeholder="Escribe la referencia antigua..." autocomplete="off" style="min-width:0">
 </div>
 <div class="muted">Busca coincidencias parciales en la tercera columna del catálogo. Selecciona un resultado para cargar su referencia actual.</div>
 <div id="oldRefResults" class="records" style="margin-top:6px"></div>
@@ -118,25 +124,81 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <p class="muted">Los datos se guardan en este dispositivo. Exporta periódicamente el listado para conservar una copia.</p>
 </section>
 <section class="card wide">
-<h2>Registros guardados</h2>
+<div class="row" style="justify-content:space-between"><h2 style="margin:0">Registros guardados</h2></div>
 <div class="field"><input id="filter" placeholder="Filtrar por referencia..." aria-label="Filtrar registros"></div>
 <div id="records" class="records"><div class="empty">Todavía no hay registros.</div></div>
 </section>
 </main>
-<footer>Registro de armarios eléctricos GPS · Versión 2.9 · GPS del dispositivo · No se envían datos a ningún servidor</footer>
+<footer>Registro de armarios eléctricos GPS · Versión 3.0 · GPS del dispositivo · No se envían datos a ningún servidor</footer>
 <script>
 'use strict';
 const KEY='armarios_gps_v1';
-let records=load();
-let currentPosition=null;
-const $=id=>document.getElementById(id);
 const PHOTO_DB='armarios_gps_photos_v1';
+const PREFIXES=['F01','F02','F03','F03B','F04','F04B','F05','F06','F07','F08','F09','F10','F11','F12','F13','F14','F15','F16','F16B','F17','F18','F19','F19B','F20','F41','AMR'];
+let records=[];
+let currentPosition=null;
+let registrosDir=null;
+let photosDir=null;
 let pendingPhotos=[];
-function openPhotoDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(PHOTO_DB,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('photos'))req.result.createObjectStore('photos',{keyPath:'name'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
-async function storePhoto(name,blob){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').put({name,blob});tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
-async function readPhoto(name){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const req=db.transaction('photos','readonly').objectStore('photos').get(name);req.onsuccess=()=>{db.close();resolve(req.result?.blob||null);};req.onerror=()=>{db.close();reject(req.error);};});}
-async function removePhoto(name){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(name);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
-async function clearStoredPhotos(){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').clear();tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+const $=id=>document.getElementById(id);
+function openPhotoDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(PHOTO_DB,2);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('photos'))db.createObjectStore('photos',{keyPath:'name'});if(!db.objectStoreNames.contains('settings'))db.createObjectStore('settings',{keyPath:'key'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+async function dbSetting(key,value,write=false){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('settings',write?'readwrite':'readonly');const store=tx.objectStore('settings');const req=write?store.put({key,value}):store.get(key);req.onsuccess=()=>resolve(write?true:req.result?.value??null);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error)};});}
+async function getLegacyPhotos(){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readonly');const req=tx.objectStore('photos').getAll();req.onsuccess=()=>{db.close();resolve(req.result||[])};req.onerror=()=>{db.close();reject(req.error)};});}
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
+function setStorageMessage(message,kind=''){const el=$('storageStatus');el.textContent=message;el.className='status '+kind;}
+function prefixForReference(reference){return String(reference||'').split('-')[0].toUpperCase();}
+async function writeFile(dir,name,blob){const handle=await dir.getFileHandle(name,{create:true});const writable=await handle.createWritable();await writable.write(blob);await writable.close();}
+async function readFile(dir,name){try{const handle=await dir.getFileHandle(name);return await handle.getFile();}catch(e){if(e.name==='NotFoundError')return null;throw e;}}
+async function deleteFile(dir,name){try{await dir.removeEntry(name);}catch(e){if(e.name!=='NotFoundError')throw e;}}
+async function ensurePhotoFolders(){photosDir=await registrosDir.getDirectoryHandle('FOTOGRAFIAS',{create:true});for(const prefix of PREFIXES)await photosDir.getDirectoryHandle(prefix,{create:true});}
+async function photoFolder(reference){if(!photosDir)throw new Error('No está conectada la carpeta REGISTROS.');const prefix=prefixForReference(reference);if(!PREFIXES.includes(prefix))throw new Error('El prefijo '+prefix+' no está habilitado.');return photosDir.getDirectoryHandle(prefix,{create:true});}
+async function storePhoto(name,blob,reference){const dir=await photoFolder(reference);await writeFile(dir,name,blob);}
+async function readPhoto(name,reference){const dir=await photoFolder(reference);return readFile(dir,name);}
+async function removePhoto(name,reference){const dir=await photoFolder(reference);await deleteFile(dir,name);}
+async function persist(){if(!registrosDir)throw new Error('Selecciona primero la carpeta REGISTROS.');await writeFile(registrosDir,'REGISTRO_ARMARIOS.json',new Blob([JSON.stringify(records,null,2)],{type:'application/json;charset=utf-8'}));render();}
+async function saveCatalogCopy(){
+ if(!registrosDir||!Array.isArray(catalogRows)||!catalogRows.length)return;
+ const content=catalogRows.map(row=>[row.referenciaActual||'',row.observacion||'',row.referenciaAntigua||''].join('\t')).join('\r\n');
+ await writeFile(registrosDir,'CATALOGO_ARMARIOS.txt',new Blob(['\ufeff',content],{type:'text/plain;charset=utf-8'}));
+}
+async function migrateLegacyData(){
+ const jsonFile=await readFile(registrosDir,'REGISTRO_ARMARIOS.json');
+ if(jsonFile){const parsed=JSON.parse(await jsonFile.text());if(!Array.isArray(parsed))throw new Error('REGISTRO_ARMARIOS.json no contiene una lista válida.');records=parsed;return;}
+ const legacy=load();
+ if(legacy.length){
+  const stored=await getLegacyPhotos();const byName=new Map(stored.map(x=>[x.name,x.blob]));
+  for(const record of legacy){for(const name of (record.fotos||[])){const blob=byName.get(name);if(blob)await storePhoto(name,blob,record.referencia);}}
+  records=legacy;
+ }else records=[];
+ await persist();
+}
+async function connectFolder(){
+ try{
+  let handle=null;
+  const saved=await dbSetting('registrosDir');
+  if(saved&&saved.name==='REGISTROS'){
+   const permission=await saved.queryPermission({mode:'readwrite'});
+   if(permission==='granted')handle=saved;
+   else if(permission==='prompt'&&await saved.requestPermission({mode:'readwrite'})==='granted')handle=saved;
+  }
+  if(!handle){if(!('showDirectoryPicker' in window)){setStorageMessage('Este navegador no permite seleccionar carpetas. Abre la aplicación en Chrome actualizado para Android.','warn');return;}handle=await window.showDirectoryPicker({id:'armarios-registros',mode:'readwrite'});}
+  if(handle.name!=='REGISTROS'&&!confirm('Has seleccionado «'+handle.name+'». ¿Quieres utilizar esta carpeta como REGISTROS?'))return;
+  const permission=await handle.queryPermission({mode:'readwrite'});
+  if(permission!=='granted'&&await handle.requestPermission({mode:'readwrite'})!=='granted')throw new Error('No se ha concedido permiso de escritura.');
+  registrosDir=handle;await dbSetting('registrosDir',handle,true);await ensurePhotoFolders();await migrateLegacyData();await saveCatalogCopy();
+  setStorageMessage('Carpeta conectada: '+handle.name+' · '+records.length+' registros cargados.','good');
+  $('saveBtn').disabled=false;render();
+ }catch(e){if(e.name==='AbortError')return;console.error(e);setStorageMessage('No se pudo conectar o leer la carpeta: '+(e.message||e),'warn');alert('No se pudo preparar la carpeta REGISTROS. '+(e.message||e));}
+}
+$('folderBtn').onclick=connectFolder;
+async function restoreFolder(){
+ $('saveBtn').disabled=true;
+ try{const saved=await dbSetting('registrosDir');if(!saved){setStorageMessage('Selecciona la carpeta REGISTROS para comenzar.','warn');return;}
+  registrosDir=saved;const permission=await saved.queryPermission({mode:'readwrite'});
+  if(permission!=='granted'){setStorageMessage('La carpeta está registrada. Pulsa «Seleccionar carpeta REGISTROS» para volver a autorizar el acceso.','warn');return;}
+  await ensurePhotoFolders();await migrateLegacyData();await saveCatalogCopy();setStorageMessage('Carpeta conectada: '+saved.name+' · '+records.length+' registros cargados.','good');$('saveBtn').disabled=false;render();
+ }catch(e){console.error(e);registrosDir=null;setStorageMessage('No se pudo recuperar el acceso. Vuelve a seleccionar REGISTROS.','warn');}
+}
 async function convertPhotoToJpeg(file){const bitmap=await createImageBitmap(file);const scale=Math.min(1,1920/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('No se pudo convertir la imagen')),'image/jpeg',0.88));}
 function renderPendingPhotos(){const box=$('photoPreview');box.innerHTML='';pendingPhotos.forEach((photo,index)=>{const row=document.createElement('div');row.className='photo-preview';const img=document.createElement('img');img.src=URL.createObjectURL(photo);img.onload=()=>URL.revokeObjectURL(img.src);const label=document.createElement('small');label.textContent=`Fotografía ${index+1}`;const del=document.createElement('button');del.className='danger';del.textContent='Quitar';del.onclick=()=>{pendingPhotos.splice(index,1);renderPendingPhotos();};row.append(img,label,del);box.append(row);});}
 function nextPhotoNumber(reference){let max=0;records.filter(r=>r.referencia===reference).forEach(r=>(r.fotos||[]).forEach(name=>{const m=name.match(/_(\d+)\.jpg$/i);if(m)max=Math.max(max,Number(m[1]));}));return max+1;}
@@ -158,10 +220,10 @@ function render(){
   const gps=document.createElement('small');gps.textContent=r.lat!=null?`${r.lat.toFixed(7)}, ${r.lon.toFixed(7)} · ±${Math.round(r.precision)} m`:'Sin GPS';
   const row=document.createElement('div');row.className='row';
   if(r.lat!=null){const a=document.createElement('a');a.href=`https://www.google.com/maps?q=${r.lat},${r.lon}`;a.target='_blank';a.rel='noopener';a.textContent='Ver en Google Maps';a.style.color='#176b9a';a.style.fontSize='13px';row.append(a)}
-  const del=document.createElement('button');del.className='danger';del.textContent='Eliminar';del.style.flex='0 0 auto';del.style.padding='7px 10px';del.onclick=async()=>{if(confirm('¿Eliminar el registro '+r.referencia+'?')){for(const name of (r.fotos||[])){try{await removePhoto(name)}catch(e){}}records=records.filter(x=>x.id!==r.id);persist()}};
+  const del=document.createElement('button');del.className='danger';del.textContent='Eliminar';del.style.flex='0 0 auto';del.style.padding='7px 10px';del.onclick=async()=>{if(confirm('¿Eliminar el registro '+r.referencia+'?')){const previous=records;records=records.filter(x=>x.id!==r.id);try{await persist()}catch(e){records=previous;alert('No se pudo actualizar el archivo de registros. No se ha eliminado la ficha.');render();return;}for(const name of (r.fotos||[])){try{await removePhoto(name,r.referencia)}catch(e){console.warn('No se pudo eliminar la fotografía '+name,e)}}}};
   row.append(del);el.append(title,floor,oldRef,time,gps);
   if(r.observaciones){const o=document.createElement('small');o.textContent='Observaciones: '+r.observaciones;el.append(o)}
-  if(r.fotos?.length){const photos=document.createElement('small');photos.textContent='Fotografías: '+r.fotos.join(', ');el.append(photos);r.fotos.forEach(name=>{const view=document.createElement('button');view.type='button';view.className='secondary';view.textContent='Ver '+name;view.style.padding='7px 10px';view.onclick=async()=>{try{const blob=await readPhoto(name);if(!blob){alert('No se encuentra la fotografía guardada.');return;}const img=document.createElement('img');img.alt=name;img.src=URL.createObjectURL(blob);img.style.cssText='display:block;max-width:100%;max-height:260px;object-fit:contain;border-radius:8px';img.onload=()=>URL.revokeObjectURL(img.src);el.append(img);}catch(e){alert('No se ha podido abrir la fotografía.');}};el.append(view);});}
+  if(r.fotos?.length){const photos=document.createElement('small');photos.textContent='Fotografías: '+r.fotos.join(', ');el.append(photos);r.fotos.forEach(name=>{const view=document.createElement('button');view.type='button';view.className='secondary';view.textContent='Ver '+name;view.style.padding='7px 10px';view.onclick=async()=>{try{const blob=await readPhoto(name,r.referencia);if(!blob){alert('No se encuentra la fotografía guardada.');return;}const img=document.createElement('img');img.alt=name;img.src=URL.createObjectURL(blob);img.style.cssText='display:block;max-width:100%;max-height:260px;object-fit:contain;border-radius:8px';img.onload=()=>URL.revokeObjectURL(img.src);el.append(img);}catch(e){alert('No se ha podido abrir la fotografía.');}};el.append(view);});}
   el.append(row);$('records').append(el);
  });
 }
@@ -231,16 +293,22 @@ $('saveBtn').onclick=async()=>{
  const duplicate=records.some(r=>r.referencia.toLowerCase()===referencia.toLowerCase());
  if(duplicate&&!confirm('Ya existe un registro con esta referencia. ¿Quieres añadir otro registro igualmente?'))return;
  const now=new Date();
+ if(!registrosDir){alert('Antes de registrar, selecciona la carpeta REGISTROS.');return;}
  const fotos=[];let photoNumber=nextPhotoNumber(referencia);
  try{
   for(const photo of pendingPhotos){
    const name=`${referencia}_${String(photoNumber++).padStart(2,'0')}.jpg`;
    const jpeg=await convertPhotoToJpeg(photo);
-   await storePhoto(name,jpeg);fotos.push(name);
+   await storePhoto(name,jpeg,referencia);fotos.push(name);
   }
- }catch(error){alert('No se han podido guardar las fotografías en este dispositivo. El registro no se ha guardado.');return;}
- records.push({id:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim(),fotos});
- persist();pendingPhotos=[];renderPendingPhotos();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+  const record={id:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim(),fotos};
+  records.push(record);await persist();
+ }catch(error){
+  records=records.filter(r=>r.timestamp!==now.toISOString());
+  for(const name of fotos){try{await removePhoto(name,referencia)}catch(e){}}
+  console.error(error);alert('No se ha podido guardar completamente el registro o sus fotografías. No se ha confirmado el alta. Comprueba los permisos y el espacio disponible.');return;
+ }
+ pendingPhotos=[];renderPendingPhotos();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro y fotografías guardados en la carpeta REGISTROS.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 };
 $('filter').oninput=render;
 function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
@@ -293,6 +361,7 @@ function exportXLSX(){
 }
 $('exportBtn').onclick=exportXLSX;
 render();
+restoreFolder();
 
 // Catálogo TXT: columna 1 = referencia actual; columna 2 = observaciones; columna 3 = referencia antigua.
 let observationCatalog = new Map();
@@ -351,7 +420,6 @@ function onNewReferenceEdited(){
 $('prefix').addEventListener('change',onNewReferenceEdited);
 $('ref1').addEventListener('input',onNewReferenceEdited);
 $('ref2').addEventListener('input',onNewReferenceEdited);
-['prefix','ref1','ref2','newRefVoiceBtn'].forEach(id=>$(id).addEventListener('focus',clearOldReferenceSearch));
 $('catalogBtn').onclick=()=>$('catalogFile').click();
 $('oldRef').addEventListener('input',renderOldReferenceSearch);
 function selectCatalogRow(row){
@@ -362,61 +430,6 @@ function selectCatalogRow(row){
  $('oldRefResults').innerHTML='';
  $('catalogStatus').textContent='Referencia seleccionada: '+row.referenciaActual;
  $('catalogStatus').className='status good';
-}
-const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(SpeechRecognition){
- function createRecognition(){const r=new SpeechRecognition();r.lang='es-ES';r.interimResults=false;r.maxAlternatives=1;return r;}
- const oldRecognition=createRecognition();
- $('oldRefVoiceBtn').onclick=()=>{try{$('oldRefVoiceBtn').textContent='🎙️…';oldRecognition.start()}catch(e){$('oldRefVoiceBtn').textContent='🎙️'}};
- oldRecognition.onresult=e=>{$('oldRef').value=e.results[0][0].transcript.trim();renderOldReferenceSearch()};
- oldRecognition.onerror=()=>{};oldRecognition.onend=()=>$('oldRefVoiceBtn').textContent='🎙️';
- const newRecognition=createRecognition();
- const prefixes=['AMR','F01','F02','F03','F03B','F04','F04B','F05','F06','F07','F08','F09','F10','F11','F12','F13','F14','F15','F16','F16B','F17','F18','F19','F19B','F20'];
- const spokenUnits={cero:0,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90};
- function spokenNumbers(transcript){
-  const clean=transcript.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-  const tokens=clean.split(/\\s+/);let prefix=null;let startAt=0;
-  if(tokens[0]==='amr'){prefix='AMR';startAt=1;}
-  else if(tokens[0]==='f'){
-   let code='',i=1;
-   while(i<tokens.length&&/^\\d$/.test(tokens[i])){code+=tokens[i++];}
-   while(i<tokens.length&&spokenUnits[tokens[i]]!==undefined&&spokenUnits[tokens[i]]<10){code+=spokenUnits[tokens[i++]];}
-   if(code){prefix='F'+code.padStart(2,'0');if(tokens[i]==='be'||tokens[i]==='b'){prefix+='B';i++;}startAt=i;}
-  }else{
-   const literal=prefixes.find(p=>new RegExp('^'+p.toLowerCase()+'$').test(tokens[0]||''));
-   if(literal){prefix=literal;startAt=1;}
-  }
-  const segments=[];let current=[];
-  for(let i=startAt;i<tokens.length;i++){
-   if(tokens[i]==='guion'||tokens[i]==='guiones'){if(current.length){segments.push(current);current=[];}continue;}
-   current.push(tokens[i]);
-  }
-  if(current.length)segments.push(current);
-  const values=segments.map(segment=>{
-   if(segment.length>1&&segment.every(t=>(/^\\d$/.test(t))||(spokenUnits[t]!==undefined&&spokenUnits[t]<10))){
-    return Number(segment.map(t=>/^\\d$/.test(t)?t:String(spokenUnits[t])).join(''));
-   }
-   let total=0;
-   segment.forEach(t=>{if(/^\\d{1,2}$/.test(t))total=Number(t);else if(spokenUnits[t]!==undefined)total+=spokenUnits[t];});
-   return total;
-  }).filter(n=>Number.isInteger(n)&&n>=0&&n<=99);
-  return {clean,tokens,values,prefix};
- }
- $('newRefVoiceBtn').onclick=()=>{clearOldReferenceSearch();try{$('newRefVoiceBtn').textContent='🎙️…';newRecognition.start()}catch(e){$('newRefVoiceBtn').textContent='🎙️'}};
- newRecognition.onresult=e=>{
-  const transcript=e.results[0][0].transcript.trim();const parsed=spokenNumbers(transcript);
-  if(parsed.prefix)$('prefix').value=parsed.prefix;
-  else {
-   const literal=prefixes.find(p=>new RegExp('(^| )'+p.toLowerCase()+'( |$)').test(parsed.clean));
-   if(literal)$('prefix').value=literal;
-  }
-  if(parsed.values.length>=2){$('ref1').value=parsed.values[parsed.values.length-2];$('ref2').value=parsed.values[parsed.values.length-1];}
-  else if(parsed.values.length===1){$('ref1').value=parsed.values[0];}
-  onNewReferenceEdited();
- };
- newRecognition.onerror=()=>{};newRecognition.onend=()=>$('newRefVoiceBtn').textContent='🎙️';
-}else{
- ['oldRefVoiceBtn','newRefVoiceBtn'].forEach(id=>{$(id).disabled=true;$(id).title='El navegador no admite dictado por voz';});
 }
 $('catalogFile').onchange=async e=>{
  const file=e.target.files[0];if(!file)return;
@@ -438,6 +451,7 @@ $('catalogFile').onchange=async e=>{
   if(!rows.length){alert('No se encontraron filas válidas. El TXT debe tener referencia actual, observación y referencia antigua en tres columnas separadas por tabuladores.');return;}
   observationCatalog=next;catalogRows=rows;
   try{localStorage.setItem('armarios_gps_catalog_v1',JSON.stringify(catalogRows));}catch(storageError){}
+  if(registrosDir){try{await writeFile(registrosDir,'CATALOGO_ARMARIOS.txt',file); }catch(saveCatalogError){setStorageMessage('Catálogo cargado, pero no se pudo copiar a REGISTROS: '+saveCatalogError.message,'warn');}}
   $('catalogStatus').textContent=`Catálogo cargado: ${rows.length} filas`;
   $('catalogStatus').className='status good';
   refreshObservation();renderOldReferenceSearch();
@@ -457,7 +471,7 @@ try{
   $('catalogStatus').className='status good';
  }
 }catch(e){}
-$('updatedAt').textContent='Versión 2.9 · Actualizado: '+new Date().toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
+$('updatedAt').textContent='Versión 3.0 · Actualizado: '+new Date().toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
 </script>
 </body>
 </html>
