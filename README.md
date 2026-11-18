@@ -1,38 +1,36 @@
-# Registro de armarios eléctricos
+# Registro de armarios eléctricos GPS · Versión 2.7
 
-Aplicación web estática para registrar armarios eléctricos con referencia, planta, observaciones, fotografías (si se incorporan en una futura versión), fecha/hora y posición GPS.
+**Versión:** 2.7  
+**Fecha de actualización:** 18/11/2026
+
+Aplicación web estática instalable como PWA para registrar armarios eléctricos con referencia, planta, observaciones de catálogo, fecha/hora y posición GPS.
 
 ## Publicación en GitHub Pages
 
-Este repositorio está preparado para el repositorio `registro-armarios-gps`.
+Sube **el contenido de esta carpeta** a la raíz del repositorio. En **Settings → Pages**, selecciona **Deploy from a branch**, rama `main` y carpeta `/(root)`. La aplicación necesita HTTPS para utilizar la geolocalización.
 
-1. Sube **el contenido de esta carpeta** a la raíz del repositorio, no la carpeta contenedora.
-2. En GitHub abre **Settings → Pages**.
-3. En **Build and deployment**, selecciona **Deploy from a branch**.
-4. Selecciona la rama `main` y la carpeta `/(root)`, y guarda.
-5. Activa HTTPS si GitHub no lo activa automáticamente.
+## Funciones
 
-La dirección prevista del sitio es:
-https://danielmenendezmartinbuitrago-source.github.io/registro-armarios-gps/
-
-## Archivos
-
-- `index.html`: aplicación.
-- `manifest.webmanifest`: configuración instalable (PWA).
-- `sw.js`: caché básica para uso sin conexión después de la primera carga.
-- `icon-192.png` y `icon-512.png`: iconos de la aplicación.
-- `.nojekyll`: evita el procesamiento de GitHub Pages con Jekyll.
+- Referencias con formato `PREFIJO-XX-XX`.
+- Medición GPS de 30, 60, 90 o 120 segundos, guardando la lectura de mayor precisión.
+- Catálogo TXT de tres columnas separadas por tabuladores: referencia actual, observación y referencia antigua.
+- Búsqueda parcial y por voz de la referencia antigua. Al seleccionar un resultado se recuperan la referencia actual y sus observaciones.
+- Captura de varias fotografías por armario desde la cámara del móvil.
+- Fotografías guardadas localmente en IndexedDB con nombres correlativos `PREFIJO-XX-XX_01.jpg`, `_02.jpg`, etc.
+- Exportación Excel (`.xlsx`) y TXT delimitado por `;`, con una fila por registro e incluyendo los nombres de las fotografías.
+- Consulta y filtrado de los registros guardados en el dispositivo.
 
 ## Datos y privacidad
 
-Los registros se guardan en el almacenamiento local (`localStorage`) del navegador/dispositivo. Las fotografías se guardan en IndexedDB en el mismo dispositivo y reciben nombres correlativos basados en la referencia (por ejemplo, `F01-12-05_01.jpg`). No se envían automáticamente a GitHub ni a un servidor y no se sincronizan entre dispositivos. Las exportaciones Excel/TXT incluyen los nombres de las fotografías, no los archivos de imagen. Conserva una copia segura de las imágenes si necesitas trasladarlas a otro dispositivo.
+Los registros y el catálogo se guardan en el almacenamiento local del navegador (`localStorage`). Las fotografías se guardan localmente en IndexedDB. No se envían automáticamente a GitHub ni a un servidor, y no se sincronizan entre dispositivos. Las exportaciones Excel y TXT incluyen fecha y hora, referencia actual, referencia antigua, planta, latitud, longitud, precisión GPS, observaciones y nombres de las fotografías. Los archivos de imagen no se incluyen en las exportaciones y no se sincronizan entre dispositivos.
 
-El catálogo de observaciones se carga desde un archivo TXT en el propio formulario. Su formato es de tres columnas separadas por tabuladores (TAB): referencia actual, observación y referencia antigua.
+El catálogo se selecciona desde el formulario. La aplicación web no puede escribir directamente en las carpetas locales `ARMARIOS ELECTRICOS/REGISTROS` por las restricciones de seguridad del navegador. Esa estructura corresponde a la integración de escritorio Excel/VBA documentada en `LEEME_INTEGRACION.txt`.
 
-El TXT de exportación de registros usa una fila por armario y `;` como separador de campos.
+## Archivos
 
-## Permisos
-
-- La geolocalización requiere HTTPS y permiso de ubicación del navegador.
-- El dictado por voz depende del soporte del navegador y de sus permisos. Se recomienda probarlo en Chrome.
-- El modo sin conexión se activa después de la primera visita con conexión.
+- `index.html`: aplicación (identificada como versión 2.7).
+- `manifest.webmanifest`: configuración PWA.
+- `sw.js`: Service Worker y caché de la versión 2.7.
+- `icon-192.png` y `icon-512.png`: iconos.
+- `.nojekyll`: configuración de GitHub Pages.
+- `modArmarios.bas`: módulo VBA para la integración de escritorio.

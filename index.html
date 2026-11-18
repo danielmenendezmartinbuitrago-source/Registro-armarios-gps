@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#123b56">
-<meta name="description" content="Registro geolocalizado de armarios eléctricos">
+<meta name="description" content="Registro geolocalizado de armarios eléctricos · Versión 2.7">
+<meta name="application-version" content="2.7">
 <title>Registro de armarios eléctricos</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172633;background:#f2f5f7}
@@ -29,18 +30,19 @@ button{font:inherit;font-weight:700;border:0;border-radius:11px;padding:13px 15p
 .record strong{font-size:16px}.record small{color:#637783}.record .row{align-items:center}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{flex:1;min-width:125px}
 .empty{text-align:center;color:#71818a;padding:20px 8px}
+.photo-preview{display:flex;gap:8px;align-items:center;border:1px solid #e0e7eb;border-radius:10px;padding:7px}.photo-preview img{width:64px;height:64px;object-fit:cover;border-radius:7px}.photo-preview button{padding:7px 10px;flex:0 0 auto}
 footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 @media(min-width:620px){main{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}}
 </style>
 </head>
 <body>
-<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Actualizado: --</small></header>
+<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Versión 2.7 · Actualizado: --</small></header>
 <main>
 <section class="card">
 <h2>Nuevo registro</h2>
 <div class="field"><label>Referencia del armario *</label>
 <div class="row">
-<select id="prefix" aria-label="Prefijo de referencia" style="flex:1.2;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
+<select id="prefix" aria-label="Prefijo de referencia" style="flex:2 1 0;min-width:0;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
 <option value="AMR">AMR</option>
 <option>F01</option><option>F02</option><option>F03</option><option>F03B</option>
 <option>F04</option><option>F04B</option><option>F05</option><option>F06</option>
@@ -49,8 +51,8 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <option>F15</option><option>F16</option><option>F16B</option><option>F17</option>
 <option>F18</option><option>F19</option><option>F19B</option><option>F20</option>
 </select>
-<input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="min-width:0;text-align:center">
-<input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="min-width:0;text-align:center">
+<input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="flex:0.5 1 0;min-width:0;text-align:center">
+<input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="flex:0.5 1 0;min-width:0;text-align:center">
 </div>
 <div class="muted">Introduce dos números enteros entre 0 y 99. Se mostrarán con dos dígitos.</div>
 </div>
@@ -80,6 +82,13 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div id="oldRefResults" class="records" style="margin-top:6px"></div>
 </div>
 <div class="field"><label for="obs">Observaciones del catálogo (solo consulta)</label><textarea id="obs" readonly placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea></div>
+<div class="field">
+<label>Fotografías del armario</label>
+<button class="secondary" id="photoBtn" type="button">📷 Añadir fotografías</button>
+<input id="photoInput" type="file" accept="image/*" capture="environment" multiple hidden>
+<div class="muted">Puedes añadir varias fotografías. Se guardarán en este dispositivo con nombres correlativos basados en la referencia.</div>
+<div id="photoPreview" class="records"></div>
+</div>
 <div id="gpsStatus" class="status">GPS pendiente. Pulsa «Obtener posición».</div>
 <div class="field">
 <label for="gpsDuration">Tiempo de medición GPS</label>
@@ -103,14 +112,9 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div class="stat" id="count">0</div><div class="muted">armarios registrados en este dispositivo</div>
 <div class="toolbar" style="margin-top:16px">
 <button class="secondary" id="exportBtn">⇩ Exportar Excel</button>
-<button class="secondary" id="csvBtn">Exportar CSV</button>
+<button class="secondary" id="txtBtn">⇩ Exportar TXT</button>
 </div>
-<div class="toolbar" style="margin-top:8px">
-<button class="secondary" id="backupBtn">Copia JSON</button>
-<button class="secondary" id="importBtn">Importar copia</button>
-<input id="fileInput" type="file" accept=".json,application/json" hidden>
-</div>
-<p class="muted">Los datos se guardan en el almacenamiento local del navegador. Exporta copias periódicamente.</p>
+<p class="muted">Los datos se guardan en este dispositivo. Exporta periódicamente el listado para conservar una copia.</p>
 </section>
 <section class="card wide">
 <div class="row" style="justify-content:space-between"><h2 style="margin:0">Registros guardados</h2><button class="danger" id="clearBtn" style="flex:0 0 auto;padding:9px 12px">Borrar todos</button></div>
@@ -118,13 +122,24 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div id="records" class="records"><div class="empty">Todavía no hay registros.</div></div>
 </section>
 </main>
-<footer>Registro local · GPS del dispositivo · No se envían datos a ningún servidor</footer>
+<footer>Registro de armarios eléctricos GPS · Versión 2.7 · GPS del dispositivo · No se envían datos a ningún servidor</footer>
 <script>
 'use strict';
 const KEY='armarios_gps_v1';
 let records=load();
 let currentPosition=null;
 const $=id=>document.getElementById(id);
+const PHOTO_DB='armarios_gps_photos_v1';
+let pendingPhotos=[];
+function openPhotoDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(PHOTO_DB,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('photos'))req.result.createObjectStore('photos',{keyPath:'name'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+async function storePhoto(name,blob){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').put({name,blob});tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+async function readPhoto(name){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const req=db.transaction('photos','readonly').objectStore('photos').get(name);req.onsuccess=()=>{db.close();resolve(req.result?.blob||null);};req.onerror=()=>{db.close();reject(req.error);};});}
+async function removePhoto(name){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(name);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+async function clearStoredPhotos(){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').clear();tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+async function convertPhotoToJpeg(file){const bitmap=await createImageBitmap(file);const scale=Math.min(1,1920/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('No se pudo convertir la imagen')),'image/jpeg',0.88));}
+function renderPendingPhotos(){const box=$('photoPreview');box.innerHTML='';pendingPhotos.forEach((photo,index)=>{const row=document.createElement('div');row.className='photo-preview';const img=document.createElement('img');img.src=URL.createObjectURL(photo);img.onload=()=>URL.revokeObjectURL(img.src);const label=document.createElement('small');label.textContent=`Fotografía ${index+1}`;const del=document.createElement('button');del.className='danger';del.textContent='Quitar';del.onclick=()=>{pendingPhotos.splice(index,1);renderPendingPhotos();};row.append(img,label,del);box.append(row);});}
+function nextPhotoNumber(reference){let max=0;records.filter(r=>r.referencia===reference).forEach(r=>(r.fotos||[]).forEach(name=>{const m=name.match(/_(\d+)\.jpg$/i);if(m)max=Math.max(max,Number(m[1]));}));return max+1;}
+
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
 function persist(){localStorage.setItem(KEY,JSON.stringify(records));render()}
 function render(){
@@ -142,9 +157,10 @@ function render(){
   const gps=document.createElement('small');gps.textContent=r.lat!=null?`${r.lat.toFixed(7)}, ${r.lon.toFixed(7)} · ±${Math.round(r.precision)} m`:'Sin GPS';
   const row=document.createElement('div');row.className='row';
   if(r.lat!=null){const a=document.createElement('a');a.href=`https://www.google.com/maps?q=${r.lat},${r.lon}`;a.target='_blank';a.rel='noopener';a.textContent='Ver en Google Maps';a.style.color='#176b9a';a.style.fontSize='13px';row.append(a)}
-  const del=document.createElement('button');del.className='danger';del.textContent='Eliminar';del.style.flex='0 0 auto';del.style.padding='7px 10px';del.onclick=()=>{if(confirm('¿Eliminar el registro '+r.referencia+'?')){records=records.filter(x=>x.id!==r.id);persist()}};
+  const del=document.createElement('button');del.className='danger';del.textContent='Eliminar';del.style.flex='0 0 auto';del.style.padding='7px 10px';del.onclick=async()=>{if(confirm('¿Eliminar el registro '+r.referencia+'?')){for(const name of (r.fotos||[])){try{await removePhoto(name)}catch(e){}}records=records.filter(x=>x.id!==r.id);persist()}};
   row.append(del);el.append(title,floor,oldRef,time,gps);
   if(r.observaciones){const o=document.createElement('small');o.textContent='Observaciones: '+r.observaciones;el.append(o)}
+  if(r.fotos?.length){const photos=document.createElement('small');photos.textContent='Fotografías: '+r.fotos.join(', ');el.append(photos);r.fotos.forEach(name=>{const view=document.createElement('button');view.type='button';view.className='secondary';view.textContent='Ver '+name;view.style.padding='7px 10px';view.onclick=async()=>{try{const blob=await readPhoto(name);if(!blob){alert('No se encuentra la fotografía guardada.');return;}const img=document.createElement('img');img.alt=name;img.src=URL.createObjectURL(blob);img.style.cssText='display:block;max-width:100%;max-height:260px;object-fit:contain;border-radius:8px';img.onload=()=>URL.revokeObjectURL(img.src);el.append(img);}catch(e){alert('No se ha podido abrir la fotografía.');}};el.append(view);});}
   el.append(row);$('records').append(el);
  });
 }
@@ -202,7 +218,9 @@ function getGps(){
 }
 $('gpsBtn').onclick=getGps;
 $('gpsStopBtn').onclick=()=>stopGpsMeasurement('Medición GPS detenida manualmente.');
-$('saveBtn').onclick=()=>{
+$('photoBtn').onclick=()=>$('photoInput').click();
+$('photoInput').onchange=async e=>{const files=Array.from(e.target.files||[]);for(const file of files){if(file.type.startsWith('image/'))pendingPhotos.push(file);}renderPendingPhotos();e.target.value='';};
+$('saveBtn').onclick=async()=>{ 
  const n1=$('ref1').value.trim(),n2=$('ref2').value.trim();
  const valid1=n1!==''&&Number.isInteger(Number(n1))&&Number(n1)>=0&&Number(n1)<=99;
  const valid2=n2!==''&&Number.isInteger(Number(n2))&&Number(n2)>=0&&Number(n2)<=99;
@@ -212,20 +230,28 @@ $('saveBtn').onclick=()=>{
  const duplicate=records.some(r=>r.referencia.toLowerCase()===referencia.toLowerCase());
  if(duplicate&&!confirm('Ya existe un registro con esta referencia. ¿Quieres añadir otro registro igualmente?'))return;
  const now=new Date();
- records.push({id:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim()});
- persist();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+ const fotos=[];let photoNumber=nextPhotoNumber(referencia);
+ try{
+  for(const photo of pendingPhotos){
+   const name=`${referencia}_${String(photoNumber++).padStart(2,'0')}.jpg`;
+   const jpeg=await convertPhotoToJpeg(photo);
+   await storePhoto(name,jpeg);fotos.push(name);
+  }
+ }catch(error){alert('No se han podido guardar las fotografías en este dispositivo. El registro no se ha guardado.');return;}
+ records.push({id:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim(),fotos});
+ persist();pendingPhotos=[];renderPendingPhotos();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro guardado en este dispositivo.','good');window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 };
 $('filter').oninput=render;
 function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
 function dateName(){return new Date().toISOString().slice(0,10)}
-function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
-function exportCSV(){
- const headers=['Fecha y hora','Referencia','Referencia antigua','Planta','Latitud','Longitud','Precisión GPS (m)','Observaciones'];
- const rows=records.map(r=>[r.fechaHora,r.referencia,r.referenciaAntigua||'',r.planta||'',r.lat,r.lon,r.precision,r.observaciones]);
- const csv='\ufeff'+[headers,...rows].map(row=>row.map(csvCell).join(';')).join('\r\n');
- download(new Blob([csv],{type:'text/csv;charset=utf-8'}),`Registro_armarios_${dateName()}.csv`);
+function txtCell(v){return '"'+String(v??'').replace(/\r?\n/g,' ').replace(/"/g,'""')+'"'}
+function exportTXT(){
+ const headers=['Fecha y hora','Referencia','Referencia antigua','Planta','Latitud','Longitud','Precisión GPS (m)','Observaciones','Fotografías'];
+ const rows=records.map(r=>[r.fechaHora||r.timestamp,r.referencia,r.referenciaAntigua||'',r.planta||'',r.lat??'',r.lon??'',r.precision??'',r.observaciones||'',(r.fotos||[]).join(', ')]);
+ const content='\ufeff'+[headers,...rows].map(row=>row.map(txtCell).join(';')).join('\r\n');
+ download(new Blob([content],{type:'text/plain;charset=utf-8'}),`Registro_armarios_${dateName()}.txt`);
 }
-$('csvBtn').onclick=exportCSV;
+$('txtBtn').onclick=exportTXT;
 // Generación XLSX autocontenida: paquete ZIP sin compresión y hojas XML compatibles con Excel.
 function crc32(bytes){let c=~0;for(let b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return (~c)>>>0}
 const enc=new TextEncoder();
@@ -250,11 +276,11 @@ function worksheet(rows){
   if(typeof v==='number'&&Number.isFinite(v))return `<c r="${ref}"><v>${v}</v></c>`;
   return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(v)}</t></is></c>`;
  }).join('')+'</row>').join('');
- return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData><autoFilter ref="A1:H${Math.max(1,rows.length)}"/></worksheet>`;
+ return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData><autoFilter ref="A1:I${Math.max(1,rows.length)}"/></worksheet>`;
 }
 function exportXLSX(){
- const rows=[['Fecha y hora','Referencia','Referencia antigua','Planta','Latitud','Longitud','Precisión GPS (m)','Observaciones'],
- ...records.map(r=>[r.fechaHora,r.referencia,r.referenciaAntigua||'',r.planta||'',r.lat??'',r.lon??'',r.precision??'',r.observaciones])];
+ const rows=[['Fecha y hora','Referencia','Referencia antigua','Planta','Latitud','Longitud','Precisión GPS (m)','Observaciones','Fotografías'],
+ ...records.map(r=>[r.fechaHora,r.referencia,r.referenciaAntigua||'',r.planta||'',r.lat??'',r.lon??'',r.precision??'',r.observaciones,(r.fotos||[]).join(', ')])];
  const files=[
  ['[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`],
  ['_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
@@ -265,10 +291,7 @@ function exportXLSX(){
  download(new Blob([zip(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`Registro_armarios_${dateName()}.xlsx`);
 }
 $('exportBtn').onclick=exportXLSX;
-$('backupBtn').onclick=()=>download(new Blob([JSON.stringify(records,null,2)],{type:'application/json'}),`Copia_armarios_${dateName()}.json`);
-$('importBtn').onclick=()=>$('fileInput').click();
-$('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data)||!data.every(x=>x.referencia&&x.timestamp))throw Error();if(confirm(`Se van a importar ${data.length} registros. ¿Añadirlos a los actuales?`)){records.push(...data);persist();alert('Copia importada.')}}catch(err){alert('El archivo no tiene un formato de copia válido.')}e.target.value=''};
-$('clearBtn').onclick=()=>{if(records.length&&confirm('¿Borrar definitivamente todos los registros guardados en este dispositivo? Exporta antes una copia si la necesitas.')){records=[];persist()}};
+$('clearBtn').onclick=async()=>{if(records.length&&confirm('¿Borrar definitivamente todos los registros y fotografías guardados en este dispositivo?')){try{await clearStoredPhotos()}catch(e){}records=[];persist()}};
 render();
 
 // Catálogo TXT: columna 1 = referencia actual; columna 2 = observaciones; columna 3 = referencia antigua.
@@ -376,7 +399,7 @@ try{
   $('catalogStatus').className='status good';
  }
 }catch(e){}
-$('updatedAt').textContent='Actualizado: '+new Date().toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
+$('updatedAt').textContent='Versión 2.7 · Actualizado: '+new Date().toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
 </script>
 </body>
 </html>

@@ -1,26 +1,36 @@
-REGISTRO DE ARMARIOS ELÉCTRICOS GPS · VERSIÓN 2.2
+REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 2.7 · 18/11/2026
+
+IDENTIFICACION DE VERSION
+La aplicacion muestra la version 2.7 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v2.7.
 
 CONTENIDO
-- index.html: aplicación principal.
-- manifest.webmanifest: configuración de instalación PWA.
-- sw.js: Service Worker y caché para funcionamiento sin conexión.
-- icon-192.png e icon-512.png: iconos de la aplicación.
+- index.html: aplicacion principal, version 2.7.
+- manifest.webmanifest: configuracion de instalacion PWA.
+- sw.js: Service Worker y cache de la version 2.7.
+- icon-192.png e icon-512.png: iconos de la aplicacion.
+- .nojekyll: evita el procesamiento de GitHub Pages con Jekyll.
+- modArmarios.bas: modulo VBA de escritorio.
+- LEEME_INTEGRACION.txt: instrucciones de integracion de escritorio.
 
-INSTALACIÓN / ACTUALIZACIÓN
-1. Sustituye el contenido de la raíz del repositorio por todos los archivos de este paquete.
-2. Confirma los cambios en GitHub y espera a que se publique la página.
-3. Abre la aplicación desde HTTPS. La aplicación comprobará y registrará el Service Worker.
-4. Si ya estaba instalada, utiliza «Comprobar actualizaciones» o cierra y vuelve a abrir la aplicación.
+FUNCIONES
+- Alta de armarios con referencia PREFIJO-XX-XX.
+- Campos numericos compactos y selector de prefijo mas ancho.
+- Medicion GPS seleccionable de 30, 60, 90 o 120 segundos, conservando la lectura de mayor precision.
+- Detencion manual de la medicion y avisos de estado.
+- Catalogo TXT de tres columnas separadas por TAB: referencia actual, observacion y referencia antigua.
+- Busqueda parcial de referencia antigua en la tercera columna, con dictado por voz cuando el navegador lo admite.
+- Seleccion de resultado para recuperar la referencia actual y sus observaciones.
+- Captura de varias fotografias por armario, almacenadas localmente en IndexedDB con nombres correlativos.
+- Exportacion Excel (.xlsx) y TXT delimitado por punto y coma (;), con una fila por registro.
+- Listado local de registros, filtro por referencia y enlace a Google Maps.
 
-MEJORAS
-- Medición GPS seleccionable de 30, 60, 90 o 120 segundos, conservando la lectura de mayor precisión.
-- Detención manual de la medición y avisos de estado.
-- Búsqueda parcial independiente por referencia antigua en la tercera columna del TXT.
-- Catálogo TXT persistente en el navegador.
-- Exportación Excel con autofiltro en las ocho columnas y exportación CSV.
-- Copia JSON que incluye registros y catálogo; admite también copias JSON antiguas que contienen solo una lista de registros.
-- Importación con control de identificadores duplicados.
-- Conservación de la clave de registros localStorage «armarios_gps_v1» y de la clave de catálogo «armarios_gps_catalog_v1».
+DATOS Y PRIVACIDAD
+Los registros y el catalogo se almacenan localmente en el navegador/dispositivo mediante localStorage. Las fotografias se guardan localmente en IndexedDB. No se envian a GitHub ni a un servidor y no se sincronizan entre dispositivos. La exportacion TXT y Excel incluye los nombres de las fotografias, pero no incorpora los archivos de imagen.
 
-IMPORTANTE
-Los datos se almacenan localmente en cada navegador/dispositivo. Exporta una copia JSON antes de actualizar o cambiar de dispositivo. El GPS requiere HTTPS (o localhost) y permiso de ubicación. La primera carga necesita conexión para descargar los recursos de la PWA.
+PUBLICACION EN GITHUB PAGES
+1. Sube el contenido de esta carpeta a la raiz del repositorio, no la carpeta contenedora.
+2. En GitHub abre Settings > Pages.
+3. Selecciona Deploy from a branch, rama main y carpeta /(root).
+4. Activa HTTPS si no esta activado automaticamente.
+
+La geolocalizacion requiere HTTPS (o localhost) y permiso de ubicacion. El dictado por voz depende del soporte y los permisos del navegador. La primera carga necesita conexion para descargar los recursos de la PWA.
