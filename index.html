@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#123b56">
-<meta name="description" content="Registro geolocalizado de armarios eléctricos · Versión 3.4">
-<meta name="application-version" content="3.4">
+<meta name="description" content="Registro geolocalizado de armarios eléctricos · Versión 3.8">
+<meta name="application-version" content="3.8">
 <title>Registro de armarios eléctricos</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172633;background:#f2f5f7}
@@ -36,11 +36,19 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </style>
 </head>
 <body>
-<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Versión 3.4 · Actualizado: --</small></header>
+<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Versión 3.8 · Actualizado: --</small></header>
 <main>
 <section class="card wide" id="storageCard">
-<h2>Estado del almacenamiento</h2>
-<div class="status warn" id="storageStatus" role="status" aria-live="polite"><span class="tree-indicator" aria-hidden="true"></span><span id="storageStatusText">Comprobando árbol de carpetas…</span></div>
+<div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">Almacenamiento</h2><span class="muted">Estado de la aplicación</span></div>
+<div class="status warn" id="storageStatus" role="status" aria-live="polite" style="margin-top:12px"><span class="tree-indicator" aria-hidden="true"></span><span id="storageStatusText">Comprobando acceso…</span></div>
+<button class="secondary" id="restoreAccessBtn" type="button" hidden style="width:100%;margin-top:10px">RECUPERAR ACCESO A LA CARPETA</button>
+<details style="margin-top:12px">
+ <summary style="font-weight:700;color:#355366;cursor:pointer;padding:7px 2px">Información de la carpeta y acceso</summary>
+ <div class="field"><label>Carpeta principal</label><div class="coords" style="font-size:14px;font-weight:600">/storage/emulated/0/ARMARIOS ELECTRICOS</div></div>
+ <div class="field"><label>Datos de la aplicación</label><div class="muted">REGISTROS · CATALOGO_ARMARIOS.txt · REGISTRO_ARMARIOS.json · FOTOGRAFIAS</div></div>
+ <div class="field"><label>Comprobación</label><div class="status" id="accessDetail">Pendiente de verificar</div></div>
+ <p class="muted">Chrome conserva la autorización de acceso. La ruta mostrada es la ubicación prevista; el estado de arriba indica si la aplicación ha podido acceder realmente a la carpeta.</p>
+</details>
 </section>
 <section class="card">
 <h2>Nuevo registro</h2>
@@ -125,7 +133,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div id="records" class="records"><div class="empty">Todavía no hay registros.</div></div>
 </section>
 </main>
-<footer>Registro de armarios eléctricos GPS · Versión 3.4 · GPS del dispositivo · No se envían datos a ningún servidor</footer>
+<footer>Registro de armarios eléctricos GPS · Versión 3.7 · GPS del dispositivo · No se envían datos a ningún servidor</footer>
 <dialog id="photoDialog" class="photo-dialog">
  <h2>Confirmar fotografía</h2>
  <img id="photoDialogPreview" alt="Previsualización de la fotografía">
@@ -143,8 +151,11 @@ let records=[];
 let currentPosition=null;
 let registrosDir=null;
 let photosDir=null;
+let rootDirHandle=null;
 let pendingPhotos=[];
 let photoDialogUrl=null;
+let pendingRootHandle=null;
+let pendingLegacyHandle=null;
 const $=id=>document.getElementById(id);
 function openPhotoDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(PHOTO_DB,2);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('photos'))db.createObjectStore('photos',{keyPath:'name'});if(!db.objectStoreNames.contains('settings'))db.createObjectStore('settings',{keyPath:'key'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 async function dbSetting(key,value,write=false){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('settings',write?'readwrite':'readonly');const store=tx.objectStore('settings');const req=write?store.put({key,value}):store.get(key);req.onsuccess=()=>resolve(write?true:req.result?.value??null);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error)};});}
@@ -214,55 +225,88 @@ async function migrateLegacyData(){
 }
 async function prepareRoot(rootHandle){
  const permission=await rootHandle.queryPermission({mode:'readwrite'});
- if(permission!=='granted'&&await rootHandle.requestPermission({mode:'readwrite'})!=='granted')throw new Error('No se ha concedido permiso de lectura y escritura.');
+ if(permission!=='granted')throw new Error('La carpeta raíz todavía no tiene permiso de lectura y escritura.');
  registrosDir=await rootHandle.getDirectoryHandle('REGISTROS',{create:true});
  await ensurePhotoFolders();
  await migrateLegacyData();
  await loadCatalogFromDisk();
  await dbSetting('armariosRootDir',rootHandle,true);
+ rootDirHandle=rootHandle;
+ const catalogFile=await readFile(registrosDir,'CATALOGO_ARMARIOS.txt');
+ const registerFile=await readFile(registrosDir,'REGISTRO_ARMARIOS.json');
+ $('accessDetail').textContent='Acceso verificado por Chrome · REGISTROS y FOTOGRAFIAS disponibles'+(catalogFile?' · catálogo encontrado':' · catálogo aún no localizado')+(registerFile?' · registro encontrado':' · registro aún no localizado');
+ $('accessDetail').className='status good';
+}
+function showRestoreButton(show){$('restoreAccessBtn').hidden=!show;}
+async function getStoredPermission(handle){
+ try{return await handle.queryPermission({mode:'readwrite'});}
+ catch(error){
+  // En algunos estados de Chrome Android, queryPermission puede lanzar SecurityError
+  // en lugar de devolver "prompt". El handle sigue siendo candidato a recuperación.
+  console.warn('No se pudo consultar el permiso; se ofrecerá recuperación manual.',error);
+  return 'prompt';
+ }
 }
 async function restoreFolder(){
- $('saveBtn').disabled=true;
+ $('saveBtn').disabled=true;showRestoreButton(false);pendingRootHandle=null;pendingLegacyHandle=null;
  setStorageMessage('Comprobando la carpeta raíz previamente declarada…','warn');
  try{
-  // La raíz se recupera exclusivamente del identificador persistido en este navegador.
-  // No se ofrece selector ni se permite elegir otra carpeta desde la interfaz.
   const root=await dbSetting('armariosRootDir');
   if(root){
-   const permission=await root.queryPermission({mode:'readwrite'});
+   const permission=await getStoredPermission(root);
    if(permission!=='granted'){
-    if(permission==='prompt'){
-     try{
-      const granted=await root.requestPermission({mode:'readwrite'});
-      if(granted!=='granted')throw new Error('El navegador no ha concedido permiso de lectura y escritura para la carpeta raíz ya declarada.');
-     }catch(permissionError){
-      throw new Error('El navegador necesita volver a autorizar el acceso a la carpeta raíz ya declarada. No selecciones otra carpeta: revisa los permisos del sitio en el navegador y vuelve a cargar la aplicación.');
-     }
-    }else throw new Error('El acceso a la carpeta raíz ya declarada está bloqueado. Revisa los permisos del sitio en el navegador.');
+    pendingRootHandle=root;$('restoreAccessBtn').textContent='RECUPERAR ACCESO A LA CARPETA';showRestoreButton(true);
+    setStorageMessage('Se ha localizado el acceso guardado a ARMARIOS ELECTRICOS, pero Chrome no permite comprobar el permiso automáticamente. Pulsa «RECUPERAR ACCESO A LA CARPETA» para intentar renovarlo.','warn');
+    return;
    }
    await prepareRoot(root);
-   setStorageMessage('Árbol de carpetas comprobado. REGISTROS y todas las carpetas de fotografías están disponibles.','good');
+   setStorageMessage('Conectada · carpeta y almacenamiento disponibles.','good');
    $('saveBtn').disabled=false;render();return;
   }
-  // Compatibilidad con instalaciones anteriores que guardaron directamente el handle REGISTROS.
   const legacyDir=await dbSetting('registrosDir');
   if(legacyDir&&legacyDir.name==='REGISTROS'){
-   const permission=await legacyDir.queryPermission({mode:'readwrite'});
+   const permission=await getStoredPermission(legacyDir);
    if(permission==='granted'){
-    registrosDir=legacyDir;
-    await ensurePhotoFolders();
-    await migrateLegacyData();
-    await loadCatalogFromDisk();
-    setStorageMessage('Árbol de REGISTROS comprobado. Se ha recuperado el acceso anterior; la raíz ARMARIOS ELECTRICOS no está disponible en este perfil.','warn');
+    registrosDir=legacyDir;await ensurePhotoFolders();await migrateLegacyData();await loadCatalogFromDisk();
+    $('accessDetail').textContent='Acceso a REGISTROS verificado. La carpeta raíz no está vinculada en este perfil.';$('accessDetail').className='status warn';
+    setStorageMessage('Conectada a REGISTROS · acceso parcial verificado.','warn');
     $('saveBtn').disabled=false;render();return;
    }
+   pendingLegacyHandle=legacyDir;$('restoreAccessBtn').textContent='RECUPERAR ACCESO A LA CARPETA';showRestoreButton(true);
+   setStorageMessage('Se ha localizado el acceso guardado a REGISTROS, pero Chrome no permite comprobar el permiso automáticamente. Pulsa «RECUPERAR ACCESO A LA CARPETA» para intentar renovarlo.','warn');return;
   }
-  setStorageMessage('No existe una carpeta raíz previamente declarada en este navegador. Abre la aplicación en el mismo navegador y perfil donde se autorizó ARMARIOS ELECTRICOS. No se ha solicitado seleccionar otra carpeta.','error');
+  showRestoreButton(true);
+  $('restoreAccessBtn').textContent='VINCULAR LA CARPETA EXISTENTE';
+  setStorageMessage('No se ha encontrado el acceso guardado en este navegador. Para recuperar la aplicación, selecciona la MISMA carpeta ARMARIOS ELECTRICOS que ya existe en el almacenamiento. No se creará otra carpeta.','warn');
  }catch(e){
   console.error(e);registrosDir=null;photosDir=null;
   setStorageMessage('No se pudo comprobar o preparar el árbol de carpetas: '+(e.message||e),'error');
  }
 }
+$('restoreAccessBtn').onclick=async()=>{
+ let handle=pendingRootHandle||pendingLegacyHandle;
+ $('restoreAccessBtn').disabled=true;
+ try{
+  if(!handle){
+   if(typeof window.showDirectoryPicker!=='function')throw new Error('Este navegador no permite seleccionar carpetas desde esta ubicación. Abre el archivo HTML directamente con Chrome y vuelve a intentarlo.');
+   handle=await window.showDirectoryPicker({id:'armarios-electricos-root',mode:'readwrite'});
+   if(handle.name!=='ARMARIOS ELECTRICOS')throw new Error('Has seleccionado «'+handle.name+'». Debes seleccionar la carpeta raíz existente «ARMARIOS ELECTRICOS», no una subcarpeta.');
+   await prepareRoot(handle);
+  }else{
+   const permission=await handle.requestPermission({mode:'readwrite'});
+   if(permission!=='granted')throw new Error('Chrome no ha concedido el permiso. Comprueba que la carpeta siga disponible y vuelve a intentarlo.');
+   if(pendingRootHandle){await prepareRoot(handle);}
+   else{
+    registrosDir=handle;await ensurePhotoFolders();await migrateLegacyData();await loadCatalogFromDisk();
+   }
+  }
+  pendingRootHandle=null;pendingLegacyHandle=null;showRestoreButton(false);
+  setStorageMessage('Conectada · carpeta y almacenamiento disponibles.','good');
+  $('saveBtn').disabled=false;render();
+ }catch(e){
+  console.error(e);setStorageMessage('No se pudo recuperar el acceso: '+(e.message||e)+' Si Chrome no muestra la autorización, revisa los permisos del sitio.','error');
+ }finally{$('restoreAccessBtn').disabled=false;}
+};
 async function convertPhotoToJpeg(file){const bitmap=await createImageBitmap(file);const scale=Math.min(1,1920/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('No se pudo convertir la imagen')),'image/jpeg',0.88));}
 function renderPendingPhotos(){const box=$('photoPreview');box.innerHTML='';pendingPhotos.forEach((item,index)=>{const row=document.createElement('div');row.className='photo-preview';const img=document.createElement('img');img.src=URL.createObjectURL(item.file);img.onload=()=>URL.revokeObjectURL(img.src);const label=document.createElement('small');label.textContent=`Fotografía ${index+1} · ${item.tipo}`;const del=document.createElement('button');del.className='danger';del.textContent='Quitar';del.onclick=()=>{pendingPhotos.splice(index,1);renderPendingPhotos();};row.append(img,label,del);box.append(row);});}
 function confirmPhoto(file){return new Promise(resolve=>{const dialog=$('photoDialog'),preview=$('photoDialogPreview');if(photoDialogUrl)URL.revokeObjectURL(photoDialogUrl);photoDialogUrl=URL.createObjectURL(file);preview.src=photoDialogUrl;$('photoType').value='Ubicación';const cleanup=value=>{dialog.close();preview.removeAttribute('src');if(photoDialogUrl){URL.revokeObjectURL(photoDialogUrl);photoDialogUrl=null;}resolve(value);};$('acceptPhotoBtn').onclick=()=>cleanup($('photoType').value);$('cancelPhotoBtn').onclick=()=>cleanup(null);dialog.oncancel=e=>{e.preventDefault();cleanup(null);};dialog.showModal();});}
@@ -520,7 +564,7 @@ try{
  const savedCatalog=JSON.parse(localStorage.getItem('armarios_gps_catalog_v1')||'[]');
  if(Array.isArray(savedCatalog)&&savedCatalog.length){catalogRows=savedCatalog;catalogRows.forEach(row=>{const key=normalizeReference(row.referenciaActual);if(key&&!observationCatalog.has(key))observationCatalog.set(key,{observacion:row.observacion||'',referenciaAntigua:row.referenciaAntigua||''});});$('catalogStatus').textContent=`Catálogo recuperado: ${catalogRows.length} filas`;$('catalogStatus').className='status good';}
 }catch(e){}
-$('updatedAt').textContent='Versión 3.4 · Actualizado: 19/11/2026 10:28'; // Fecha fija de publicación de esta compilación; no cambia al abrir la aplicación.
+$('updatedAt').textContent='Versión 3.8 · Actualizado: 19/11/2026'; // Fecha de compilación.
 restoreFolder();
 </script>
 </body>
