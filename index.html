@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#123b56">
-<meta name="description" content="Registro geolocalizado de armarios eléctricos · Versión 3.3">
-<meta name="application-version" content="3.2">
+<meta name="description" content="Registro geolocalizado de armarios eléctricos · Versión 3.4">
+<meta name="application-version" content="3.4">
 <title>Registro de armarios eléctricos</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172633;background:#f2f5f7}
@@ -22,8 +22,8 @@ button{font:inherit;font-weight:700;border:0;border-radius:11px;padding:13px 15p
 .primary{background:#14734e;color:#fff;width:100%;font-size:17px;padding:16px}
 .secondary{background:#e8eff3;color:#17384d}.danger{background:#fff0ef;color:#a52d27}
 .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
-.status{font-size:13px;padding:10px 12px;border-radius:10px;background:#eef4f7;color:#355366}
-.status.good{background:#e8f6ef;color:#17623f}.status.warn{background:#fff5df;color:#815400}
+.status{display:flex;align-items:center;font-size:13px;padding:10px 12px;border-radius:10px;background:#eef4f7;color:#355366}
+.status.good{background:#e8f6ef;color:#17623f}.status.warn{background:#fff5df;color:#815400}.status.error{background:#fff0ef;color:#a52d27}.tree-indicator{display:inline-block;width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:#c58a16;box-shadow:0 0 0 3px #c58a1622;margin-right:8px}.status.good .tree-indicator{background:#16834f;box-shadow:0 0 0 3px #16834f22}.status.error .tree-indicator{background:#bd342d;box-shadow:0 0 0 3px #bd342d22}
 .coords{font-variant-numeric:tabular-nums;font-size:15px;font-weight:650;overflow-wrap:anywhere}
 .muted{color:#657783;font-size:12px}.stat{font-size:26px;font-weight:800}
 .records{display:grid;gap:9px}.record{border:1px solid #e0e7eb;border-radius:12px;padding:12px;display:grid;gap:6px}
@@ -36,15 +36,11 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 </style>
 </head>
 <body>
-<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Versión 3.3 · Actualizado: --</small></header>
+<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Versión 3.4 · Actualizado: --</small></header>
 <main>
 <section class="card wide" id="storageCard">
-<h2>Almacenamiento de registros y fotografías</h2>
-<div class="row">
-<button class="secondary" id="folderBtn" type="button">📁 Seleccionar carpeta ARMARIOS ELECTRICOS</button>
-<div class="status warn" id="storageStatus">Selecciona la carpeta raíz ARMARIOS ELECTRICOS para comenzar.</div>
-</div>
-<p class="muted">Selecciona la carpeta raíz «ARMARIOS ELECTRICOS». La aplicación creará dentro REGISTROS, el catálogo, el archivo de registros y FOTOGRAFIAS con todas las carpetas de prefijo.</p>
+<h2>Estado del almacenamiento</h2>
+<div class="status warn" id="storageStatus" role="status" aria-live="polite"><span class="tree-indicator" aria-hidden="true"></span><span id="storageStatusText">Comprobando árbol de carpetas…</span></div>
 </section>
 <section class="card">
 <h2>Nuevo registro</h2>
@@ -129,7 +125,7 @@ footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
 <div id="records" class="records"><div class="empty">Todavía no hay registros.</div></div>
 </section>
 </main>
-<footer>Registro de armarios eléctricos GPS · Versión 3.3 · GPS del dispositivo · No se envían datos a ningún servidor</footer>
+<footer>Registro de armarios eléctricos GPS · Versión 3.4 · GPS del dispositivo · No se envían datos a ningún servidor</footer>
 <dialog id="photoDialog" class="photo-dialog">
  <h2>Confirmar fotografía</h2>
  <img id="photoDialogPreview" alt="Previsualización de la fotografía">
@@ -154,7 +150,13 @@ function openPhotoDB(){return new Promise((resolve,reject)=>{const req=indexedDB
 async function dbSetting(key,value,write=false){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('settings',write?'readwrite':'readonly');const store=tx.objectStore('settings');const req=write?store.put({key,value}):store.get(key);req.onsuccess=()=>resolve(write?true:req.result?.value??null);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error)};});}
 async function getLegacyPhotos(){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readonly');const req=tx.objectStore('photos').getAll();req.onsuccess=()=>{db.close();resolve(req.result||[])};req.onerror=()=>{db.close();reject(req.error)};});}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
-function setStorageMessage(message,kind=''){const el=$('storageStatus');el.textContent=message;el.className='status '+kind;}
+function setStorageMessage(message,kind=''){
+ const el=$('storageStatus');
+ el.className='status '+kind;
+ const text=$('storageStatusText');
+ if(text)text.textContent=message;
+ else el.textContent=message;
+}
 function prefixForReference(reference){return String(reference||'').split('-')[0].toUpperCase();}
 async function writeFile(dir,name,blob){const handle=await dir.getFileHandle(name,{create:true});const writable=await handle.createWritable();await writable.write(blob);await writable.close();}
 async function readFile(dir,name){try{const handle=await dir.getFileHandle(name);return await handle.getFile();}catch(e){if(e.name==='NotFoundError')return null;throw e;}}
@@ -219,33 +221,48 @@ async function prepareRoot(rootHandle){
  await loadCatalogFromDisk();
  await dbSetting('armariosRootDir',rootHandle,true);
 }
-async function connectFolder(){
- try{
-  if(!('showDirectoryPicker' in window)){setStorageMessage('Este navegador no permite seleccionar carpetas. Abre la aplicación en Chrome actualizado para Android.','warn');return;}
-  const root=await window.showDirectoryPicker({id:'armarios-root',mode:'readwrite'});
-  await prepareRoot(root);
-  setStorageMessage('Carpeta raíz conectada: '+root.name+' · REGISTROS preparado · '+records.length+' registros cargados.','good');
-  $('saveBtn').disabled=false;render();
- }catch(e){if(e.name==='AbortError')return;console.error(e);setStorageMessage('No se pudo preparar el árbol de carpetas: '+(e.message||e),'warn');alert('No se pudo preparar ARMARIOS ELECTRICOS/REGISTROS. '+(e.message||e));}
-}
-$('folderBtn').onclick=connectFolder;
 async function restoreFolder(){
  $('saveBtn').disabled=true;
+ setStorageMessage('Comprobando la carpeta raíz previamente declarada…','warn');
  try{
+  // La raíz se recupera exclusivamente del identificador persistido en este navegador.
+  // No se ofrece selector ni se permite elegir otra carpeta desde la interfaz.
   const root=await dbSetting('armariosRootDir');
-  if(root){await prepareRoot(root);setStorageMessage('Carpeta raíz conectada: '+root.name+' · REGISTROS preparado · '+records.length+' registros cargados.','good');$('saveBtn').disabled=false;render();return;}
-  // Compatibilidad con la versión 3.0, que guardaba directamente el handle REGISTROS.
+  if(root){
+   const permission=await root.queryPermission({mode:'readwrite'});
+   if(permission!=='granted'){
+    if(permission==='prompt'){
+     try{
+      const granted=await root.requestPermission({mode:'readwrite'});
+      if(granted!=='granted')throw new Error('El navegador no ha concedido permiso de lectura y escritura para la carpeta raíz ya declarada.');
+     }catch(permissionError){
+      throw new Error('El navegador necesita volver a autorizar el acceso a la carpeta raíz ya declarada. No selecciones otra carpeta: revisa los permisos del sitio en el navegador y vuelve a cargar la aplicación.');
+     }
+    }else throw new Error('El acceso a la carpeta raíz ya declarada está bloqueado. Revisa los permisos del sitio en el navegador.');
+   }
+   await prepareRoot(root);
+   setStorageMessage('Árbol de carpetas comprobado. REGISTROS y todas las carpetas de fotografías están disponibles.','good');
+   $('saveBtn').disabled=false;render();return;
+  }
+  // Compatibilidad con instalaciones anteriores que guardaron directamente el handle REGISTROS.
   const legacyDir=await dbSetting('registrosDir');
   if(legacyDir&&legacyDir.name==='REGISTROS'){
    const permission=await legacyDir.queryPermission({mode:'readwrite'});
-   if(permission==='granted'||(permission==='prompt'&&await legacyDir.requestPermission({mode:'readwrite'})==='granted')){
-    registrosDir=legacyDir;await ensurePhotoFolders();await migrateLegacyData();await loadCatalogFromDisk();setStorageMessage('Carpeta REGISTROS anterior recuperada. Para adoptar el nuevo árbol, selecciona la carpeta raíz ARMARIOS ELECTRICOS.','warn');$('saveBtn').disabled=false;render();return;
+   if(permission==='granted'){
+    registrosDir=legacyDir;
+    await ensurePhotoFolders();
+    await migrateLegacyData();
+    await loadCatalogFromDisk();
+    setStorageMessage('Árbol de REGISTROS comprobado. Se ha recuperado el acceso anterior; la raíz ARMARIOS ELECTRICOS no está disponible en este perfil.','warn');
+    $('saveBtn').disabled=false;render();return;
    }
   }
-  setStorageMessage('Selecciona la carpeta raíz ARMARIOS ELECTRICOS para crear automáticamente el árbol de almacenamiento.','warn');
- }catch(e){console.error(e);registrosDir=null;setStorageMessage('No se pudo recuperar el acceso. Vuelve a seleccionar la carpeta raíz ARMARIOS ELECTRICOS.','warn');}
+  setStorageMessage('No existe una carpeta raíz previamente declarada en este navegador. Abre la aplicación en el mismo navegador y perfil donde se autorizó ARMARIOS ELECTRICOS. No se ha solicitado seleccionar otra carpeta.','error');
+ }catch(e){
+  console.error(e);registrosDir=null;photosDir=null;
+  setStorageMessage('No se pudo comprobar o preparar el árbol de carpetas: '+(e.message||e),'error');
+ }
 }
-$('saveBtn').disabled=true;
 async function convertPhotoToJpeg(file){const bitmap=await createImageBitmap(file);const scale=Math.min(1,1920/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('No se pudo convertir la imagen')),'image/jpeg',0.88));}
 function renderPendingPhotos(){const box=$('photoPreview');box.innerHTML='';pendingPhotos.forEach((item,index)=>{const row=document.createElement('div');row.className='photo-preview';const img=document.createElement('img');img.src=URL.createObjectURL(item.file);img.onload=()=>URL.revokeObjectURL(img.src);const label=document.createElement('small');label.textContent=`Fotografía ${index+1} · ${item.tipo}`;const del=document.createElement('button');del.className='danger';del.textContent='Quitar';del.onclick=()=>{pendingPhotos.splice(index,1);renderPendingPhotos();};row.append(img,label,del);box.append(row);});}
 function confirmPhoto(file){return new Promise(resolve=>{const dialog=$('photoDialog'),preview=$('photoDialogPreview');if(photoDialogUrl)URL.revokeObjectURL(photoDialogUrl);photoDialogUrl=URL.createObjectURL(file);preview.src=photoDialogUrl;$('photoType').value='Ubicación';const cleanup=value=>{dialog.close();preview.removeAttribute('src');if(photoDialogUrl){URL.revokeObjectURL(photoDialogUrl);photoDialogUrl=null;}resolve(value);};$('acceptPhotoBtn').onclick=()=>cleanup($('photoType').value);$('cancelPhotoBtn').onclick=()=>cleanup(null);dialog.oncancel=e=>{e.preventDefault();cleanup(null);};dialog.showModal();});}
@@ -339,7 +356,7 @@ $('saveBtn').onclick=async()=>{
  const duplicate=records.some(r=>r.referencia.toLowerCase()===referencia.toLowerCase());
  if(duplicate&&!confirm('Ya existe un registro con esta referencia. ¿Quieres añadir otro registro igualmente?'))return;
  const now=new Date();
- if(!registrosDir){alert('Antes de registrar, selecciona la carpeta raíz ARMARIOS ELECTRICOS para preparar el almacenamiento.');return;}
+ if(!registrosDir){alert('El árbol de carpetas no está disponible. Comprueba el indicador de almacenamiento y los permisos del navegador.');return;}
  const fotos=[];let photoNumber=nextPhotoNumber(referencia);
  try{
   const tiposFotografias=[];
@@ -503,7 +520,7 @@ try{
  const savedCatalog=JSON.parse(localStorage.getItem('armarios_gps_catalog_v1')||'[]');
  if(Array.isArray(savedCatalog)&&savedCatalog.length){catalogRows=savedCatalog;catalogRows.forEach(row=>{const key=normalizeReference(row.referenciaActual);if(key&&!observationCatalog.has(key))observationCatalog.set(key,{observacion:row.observacion||'',referenciaAntigua:row.referenciaAntigua||''});});$('catalogStatus').textContent=`Catálogo recuperado: ${catalogRows.length} filas`;$('catalogStatus').className='status good';}
 }catch(e){}
-$('updatedAt').textContent='Versión 3.3 · Actualizado: '+new Date().toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
+$('updatedAt').textContent='Versión 3.4 · Actualizado: 19/11/2026 10:28'; // Fecha fija de publicación de esta compilación; no cambia al abrir la aplicación.
 restoreFolder();
 </script>
 </body>
