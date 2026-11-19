@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123b56">
+<meta name="description" content="Registro geolocalizado de armarios eléctricos · Versión 3.4">
+<meta name="application-version" content="3.4">
+<title>Registro de armarios eléctricos</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172633;background:#f2f5f7}
+*{box-sizing:border-box}body{margin:0;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{background:#123b56;color:#fff;padding:22px 18px 18px}
+header h1{font-size:21px;margin:0 0 5px}header p{margin:0;color:#d5e4ed;font-size:13px}header .updated{display:block;margin-top:8px;color:#b9cfdb;font-size:12px;font-weight:500}
+main{max-width:760px;margin:auto;padding:16px;display:grid;gap:14px}
+.card{background:#fff;border:1px solid #dce4e9;border-radius:16px;padding:16px;box-shadow:0 2px 8px #142b3a0b}
+h2{font-size:17px;margin:0 0 13px}.field{display:grid;gap:6px;margin:12px 0}
+label{font-size:13px;font-weight:650;color:#405563}
+input,textarea{width:100%;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633}
+textarea{min-height:70px;resize:vertical}
+button{font:inherit;font-weight:700;border:0;border-radius:11px;padding:13px 15px;cursor:pointer}
+.primary{background:#14734e;color:#fff;width:100%;font-size:17px;padding:16px}
+.secondary{background:#e8eff3;color:#17384d}.danger{background:#fff0ef;color:#a52d27}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
+.status{display:flex;align-items:center;font-size:13px;padding:10px 12px;border-radius:10px;background:#eef4f7;color:#355366}
+.status.good{background:#e8f6ef;color:#17623f}.status.warn{background:#fff5df;color:#815400}.status.error{background:#fff0ef;color:#a52d27}.tree-indicator{display:inline-block;width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:#c58a16;box-shadow:0 0 0 3px #c58a1622;margin-right:8px}.status.good .tree-indicator{background:#16834f;box-shadow:0 0 0 3px #16834f22}.status.error .tree-indicator{background:#bd342d;box-shadow:0 0 0 3px #bd342d22}
+.coords{font-variant-numeric:tabular-nums;font-size:15px;font-weight:650;overflow-wrap:anywhere}
+.muted{color:#657783;font-size:12px}.stat{font-size:26px;font-weight:800}
+.records{display:grid;gap:9px}.record{border:1px solid #e0e7eb;border-radius:12px;padding:12px;display:grid;gap:6px}
+.record strong{font-size:16px}.record small{color:#637783}.record .row{align-items:center}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{flex:1;min-width:125px}
+.empty{text-align:center;color:#71818a;padding:20px 8px}
+.photo-dialog{width:min(92vw,460px);border:0;border-radius:16px;padding:18px;box-shadow:0 12px 40px #102b3c55}.photo-dialog::backdrop{background:#102b3c99}.photo-dialog h2{margin:0 0 12px}.photo-dialog img{display:block;width:100%;max-height:55vh;object-fit:contain;background:#edf2f5;border-radius:10px;margin-bottom:14px}.photo-dialog select{width:100%;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff}.photo-preview{display:flex;gap:8px;align-items:center;border:1px solid #e0e7eb;border-radius:10px;padding:7px}.photo-preview img{width:64px;height:64px;object-fit:cover;border-radius:7px}.photo-preview button{padding:7px 10px;flex:0 0 auto}
+footer{text-align:center;color:#71818a;font-size:11px;padding:4px 16px 24px}
+@media(min-width:620px){main{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header><h1>Registro de armarios eléctricos</h1><p>Captura de referencia, fecha, hora y posición GPS</p><small class="updated" id="updatedAt">Versión 3.4 · Actualizado: --</small></header>
+<main>
+<section class="card wide" id="storageCard">
+<h2>Estado del almacenamiento</h2>
+<div class="status warn" id="storageStatus" role="status" aria-live="polite"><span class="tree-indicator" aria-hidden="true"></span><span id="storageStatusText">Comprobando árbol de carpetas…</span></div>
+</section>
+<section class="card">
+<h2>Nuevo registro</h2>
+<div class="field"><label>Referencia del armario *</label>
+<div class="row">
+<select id="prefix" aria-label="Prefijo de referencia" style="flex:2 1 0;min-width:0;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
+<option value="AMR">AMR</option>
+<option>F01</option><option>F02</option><option>F03</option><option>F03B</option>
+<option>F04</option><option>F04B</option><option>F05</option><option>F06</option>
+<option>F07</option><option>F08</option><option>F09</option><option>F10</option>
+<option>F11</option><option>F12</option><option>F13</option><option>F14</option>
+<option>F15</option><option>F16</option><option>F16B</option><option>F17</option>
+<option>F18</option><option>F19</option><option>F19B</option><option>F20</option><option>F41</option>
+</select>
+<input id="ref1" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Primer número" style="flex:0.5 1 0;min-width:0;text-align:center">
+<input id="ref2" type="number" inputmode="numeric" min="0" max="99" step="1" placeholder="00" aria-label="Segundo número" style="flex:0.5 1 0;min-width:0;text-align:center">
+</div>
+<div class="muted">Introduce dos números enteros entre 0 y 99. Se mostrarán con dos dígitos.</div>
+</div>
+<div class="field"><label for="floor">Planta / nivel *</label>
+<select id="floor" style="width:100%;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
+<option value="Sótano">Sótano</option>
+<option value="Planta Baja" selected>Planta Baja</option>
+<option value="Planta 1">Planta 1</option>
+<option value="Planta 2">Planta 2</option>
+<option value="Planta 3">Planta 3</option>
+<option value="Cubierta">Cubierta</option>
+</select></div>
+<div class="field"><label>Catálogo de observaciones (TXT)</label>
+<div class="row">
+<button class="secondary" id="catalogBtn" type="button">Cargar archivo TXT</button>
+<div class="status" id="catalogStatus">Sin catálogo cargado</div>
+</div>
+<input id="catalogFile" type="file" accept=".txt,text/plain" hidden>
+<div class="muted">Formato TXT: primera línea con versión y fecha de edición; segunda línea con cabecera; desde la tercera, referencia actual, observación y referencia antigua, separadas por TAB.</div>
+</div>
+<div class="field"><label for="oldRef">Referencia antigua (consulta del catálogo)</label>
+<div class="row" style="flex-wrap:nowrap;align-items:stretch">
+<input id="oldRef" type="text" placeholder="Referencia antigua asociada o búsqueda..." autocomplete="off" autocapitalize="characters" spellcheck="false" style="min-width:0">
+</div>
+<div class="muted">Al introducir una referencia actual se mostrará su referencia antigua asociada. También puedes buscar por referencia antigua y seleccionar el resultado.</div>
+<div id="oldRefResults" class="records" style="margin-top:6px"></div>
+</div>
+<div class="field"><label for="obs">Observaciones del catálogo (solo consulta)</label><textarea id="obs" readonly placeholder="Al seleccionar una referencia, aquí aparecerá su observación del catálogo."></textarea></div>
+<div class="field">
+<label>Fotografías del armario</label>
+<button class="secondary" id="photoBtn" type="button">📷 Añadir fotografías</button>
+<input id="photoInput" type="file" accept="image/*" capture="environment" multiple hidden>
+<div class="muted">Puedes añadir varias fotografías. Se guardarán en este dispositivo con nombres correlativos basados en la referencia.</div>
+<div id="photoPreview" class="records"></div>
+</div>
+<div id="gpsStatus" class="status">GPS pendiente. Pulsa «Obtener posición».</div>
+<div class="field">
+<label for="gpsDuration">Tiempo de medición GPS</label>
+<select id="gpsDuration" style="width:100%;font:inherit;font-size:16px;border:1px solid #cbd6dd;border-radius:10px;padding:12px;background:#fff;color:#172633">
+<option value="30">30 segundos</option><option value="60" selected>60 segundos</option>
+<option value="90">90 segundos</option><option value="120">120 segundos</option>
+</select>
+<div class="muted">Durante ese tiempo se conservará la lectura de mayor precisión (menor margen de error).</div>
+</div>
+<div class="row" style="margin:10px 0">
+<button class="secondary" id="gpsBtn" type="button">◎ Iniciar medición GPS</button>
+<button class="danger" id="gpsStopBtn" type="button" disabled>Detener</button>
+</div>
+<div class="status" id="accuracy">Precisión: sin medir</div>
+<div class="field"><label>Coordenadas capturadas</label><div class="coords" id="coords">Sin posición GPS</div></div>
+<button class="primary" id="saveBtn" type="button">REGISTRAR ARMARIO</button>
+<p class="muted">La posición se obtiene al pulsar el botón GPS. Se recomienda registrar al aire libre y esperar una precisión adecuada.</p>
+</section>
+<section class="card">
+<h2>Resumen</h2>
+<div class="stat" id="count">0</div><div class="muted">armarios registrados en este dispositivo</div>
+<div class="toolbar" style="margin-top:16px">
+<button class="secondary" id="exportBtn">⇩ Exportar Excel</button>
+<button class="secondary" id="txtBtn">⇩ Exportar TXT</button>
+</div>
+<p class="muted">Los datos se guardan en este dispositivo. Exporta periódicamente el listado para conservar una copia.</p>
+</section>
+<section class="card wide">
+<div class="row" style="justify-content:space-between"><h2 style="margin:0">Registros guardados</h2></div>
+<div class="field"><input id="filter" placeholder="Filtrar por referencia..." aria-label="Filtrar registros"></div>
+<div id="records" class="records"><div class="empty">Todavía no hay registros.</div></div>
+</section>
+</main>
+<footer>Registro de armarios eléctricos GPS · Versión 3.4 · GPS del dispositivo · No se envían datos a ningún servidor</footer>
+<dialog id="photoDialog" class="photo-dialog">
+ <h2>Confirmar fotografía</h2>
+ <img id="photoDialogPreview" alt="Previsualización de la fotografía">
+ <div class="field"><label for="photoType">Tipo de fotografía</label>
+  <select id="photoType"><option value="Ubicación">Ubicación</option><option value="Interior">Interior</option><option value="Documentación">Documentación</option></select>
+ </div>
+ <div class="row"><button type="button" class="danger" id="cancelPhotoBtn">Cancelar foto</button><button type="button" class="primary" id="acceptPhotoBtn">Aceptar</button></div>
+</dialog>
+<script>
+'use strict';
+const KEY='armarios_gps_v1';
+const PHOTO_DB='armarios_gps_photos_v1';
+const PREFIXES=['F01','F02','F03','F03B','F04','F04B','F05','F06','F07','F08','F09','F10','F11','F12','F13','F14','F15','F16','F16B','F17','F18','F19','F19B','F20','F41','AMR'];
+let records=[];
+let currentPosition=null;
+let registrosDir=null;
+let photosDir=null;
+let pendingPhotos=[];
+let photoDialogUrl=null;
+const $=id=>document.getElementById(id);
+function openPhotoDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(PHOTO_DB,2);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('photos'))db.createObjectStore('photos',{keyPath:'name'});if(!db.objectStoreNames.contains('settings'))db.createObjectStore('settings',{keyPath:'key'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+async function dbSetting(key,value,write=false){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('settings',write?'readwrite':'readonly');const store=tx.objectStore('settings');const req=write?store.put({key,value}):store.get(key);req.onsuccess=()=>resolve(write?true:req.result?.value??null);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error)};});}
+async function getLegacyPhotos(){const db=await openPhotoDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readonly');const req=tx.objectStore('photos').getAll();req.onsuccess=()=>{db.close();resolve(req.result||[])};req.onerror=()=>{db.close();reject(req.error)};});}
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
+function setStorageMessage(message,kind=''){
+ const el=$('storageStatus');
+ el.className='status '+kind;
+ const text=$('storageStatusText');
+ if(text)text.textContent=message;
+ else el.textContent=message;
+}
+function prefixForReference(reference){return String(reference||'').split('-')[0].toUpperCase();}
+async function writeFile(dir,name,blob){const handle=await dir.getFileHandle(name,{create:true});const writable=await handle.createWritable();await writable.write(blob);await writable.close();}
+async function readFile(dir,name){try{const handle=await dir.getFileHandle(name);return await handle.getFile();}catch(e){if(e.name==='NotFoundError')return null;throw e;}}
+async function deleteFile(dir,name){try{await dir.removeEntry(name);}catch(e){if(e.name!=='NotFoundError')throw e;}}
+async function ensurePhotoFolders(){photosDir=await registrosDir.getDirectoryHandle('FOTOGRAFIAS',{create:true});for(const prefix of PREFIXES)await photosDir.getDirectoryHandle(prefix,{create:true});}
+async function photoFolder(reference){if(!photosDir)throw new Error('No está conectada la carpeta REGISTROS.');const prefix=prefixForReference(reference);if(!PREFIXES.includes(prefix))throw new Error('El prefijo '+prefix+' no está habilitado.');return photosDir.getDirectoryHandle(prefix,{create:true});}
+async function storePhoto(name,blob,reference){const dir=await photoFolder(reference);await writeFile(dir,name,blob);}
+async function readPhoto(name,reference){const dir=await photoFolder(reference);return readFile(dir,name);}
+async function removePhoto(name,reference){const dir=await photoFolder(reference);await deleteFile(dir,name);}
+async function persist(){if(!registrosDir)throw new Error('No está conectada la carpeta REGISTROS.');await writeFile(registrosDir,'REGISTRO_ARMARIOS.json',new Blob([JSON.stringify(records,null,2)],{type:'application/json;charset=utf-8'}));render();}
+async function saveCatalogCopy(){
+ if(!registrosDir)return;
+ const rows=Array.isArray(catalogRows)?catalogRows:[];
+ const version=catalogVersion||'1.0';
+ const edited=catalogEditedAt||new Date().toLocaleDateString('es-ES');
+ const lines=[`Versión del catálogo: ${version} | Fecha de edición: ${edited}`,'REFERENCIA ACTUAL\tOBSERVACIÓN\tREFERENCIA ANTIGUA',...rows.map(row=>[row.referenciaActual||'',row.observacion||'',row.referenciaAntigua||''].join('\t'))];
+ await writeFile(registrosDir,'CATALOGO_ARMARIOS.txt',new Blob(['\ufeff',lines.join('\r\n')],{type:'text/plain;charset=utf-8'}));
+}
+function parseCatalogText(text){
+ const lines=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).filter(line=>line.trim());
+ let version='1.0',edited=new Date().toLocaleDateString('es-ES'),start=0;
+ if(lines.length&&/versi[oó]n\s+del\s+cat[aá]logo/i.test(lines[0])){
+  const vm=lines[0].match(/versi[oó]n\s+del\s+cat[aá]logo\s*:\s*([^|\t]+)/i);if(vm)version=vm[1].trim();
+  const dm=lines[0].match(/fecha\s+de\s+edici[oó]n\s*:\s*(.+)$/i);if(dm)edited=dm[1].trim();
+  start=1;
+ }
+ if(lines[start]&&/^(REFERENCIA_ACTUAL|REFERENCIA ACTUAL|REFERENCIA|REFERENCE|CODIGO|CÓDIGO)/i.test(lines[start].split('\t')[0].trim()))start++;
+ const rows=[];
+ for(let i=start;i<lines.length;i++){
+  const cols=lines[i].split('\t');if(cols.length<3)continue;
+  const current=(cols[0]||'').trim(),note=(cols[1]||'').trim(),old=(cols[2]||'').trim();
+  if(!current)continue;rows.push({referenciaActual:current,observacion:note,referenciaAntigua:old});
+ }
+ return {rows,version,edited};
+}
+async function loadCatalogFromDisk(){
+ const file=await readFile(registrosDir,'CATALOGO_ARMARIOS.txt');
+ if(!file){
+  try{const saved=JSON.parse(localStorage.getItem('armarios_gps_catalog_v1')||'[]');catalogRows=Array.isArray(saved)?saved:[];}catch(e){catalogRows=[];}
+  catalogVersion='1.0';catalogEditedAt=new Date().toLocaleDateString('es-ES');observationCatalog=new Map();
+  catalogRows.forEach(row=>{const key=normalizeReference(row.referenciaActual);if(key&&!observationCatalog.has(key))observationCatalog.set(key,{observacion:row.observacion||'',referenciaAntigua:row.referenciaAntigua||''});});
+  await saveCatalogCopy();return;
+ }
+ const parsed=parseCatalogText(await file.text());catalogRows=parsed.rows;catalogVersion=parsed.version;catalogEditedAt=parsed.edited;
+ observationCatalog=new Map();catalogRows.forEach(row=>{const key=normalizeReference(row.referenciaActual);if(key&&!observationCatalog.has(key))observationCatalog.set(key,{observacion:row.observacion||'',referenciaAntigua:row.referenciaAntigua||''});});
+ try{localStorage.setItem('armarios_gps_catalog_v1',JSON.stringify(catalogRows));}catch(e){}
+ $('catalogStatus').textContent=`Catálogo recuperado: ${catalogRows.length} filas`;$('catalogStatus').className='status '+(catalogRows.length?'good':'');
+}
+async function migrateLegacyData(){
+ const jsonFile=await readFile(registrosDir,'REGISTRO_ARMARIOS.json');
+ if(jsonFile){const parsed=JSON.parse(await jsonFile.text());if(!Array.isArray(parsed))throw new Error('REGISTRO_ARMARIOS.json no contiene una lista válida.');records=parsed;return;}
+ const legacy=load();
+ if(legacy.length){const stored=await getLegacyPhotos();const byName=new Map(stored.map(x=>[x.name,x.blob]));for(const record of legacy){for(const name of (record.fotos||[])){const blob=byName.get(name);if(blob)await storePhoto(name,blob,record.referencia);}}records=legacy;}else records=[];
+ await persist();
+}
+async function prepareRoot(rootHandle){
+ const permission=await rootHandle.queryPermission({mode:'readwrite'});
+ if(permission!=='granted'&&await rootHandle.requestPermission({mode:'readwrite'})!=='granted')throw new Error('No se ha concedido permiso de lectura y escritura.');
+ registrosDir=await rootHandle.getDirectoryHandle('REGISTROS',{create:true});
+ await ensurePhotoFolders();
+ await migrateLegacyData();
+ await loadCatalogFromDisk();
+ await dbSetting('armariosRootDir',rootHandle,true);
+}
+async function restoreFolder(){
+ $('saveBtn').disabled=true;
+ setStorageMessage('Comprobando la carpeta raíz previamente declarada…','warn');
+ try{
+  // La raíz se recupera exclusivamente del identificador persistido en este navegador.
+  // No se ofrece selector ni se permite elegir otra carpeta desde la interfaz.
+  const root=await dbSetting('armariosRootDir');
+  if(root){
+   const permission=await root.queryPermission({mode:'readwrite'});
+   if(permission!=='granted'){
+    if(permission==='prompt'){
+     try{
+      const granted=await root.requestPermission({mode:'readwrite'});
+      if(granted!=='granted')throw new Error('El navegador no ha concedido permiso de lectura y escritura para la carpeta raíz ya declarada.');
+     }catch(permissionError){
+      throw new Error('El navegador necesita volver a autorizar el acceso a la carpeta raíz ya declarada. No selecciones otra carpeta: revisa los permisos del sitio en el navegador y vuelve a cargar la aplicación.');
+     }
+    }else throw new Error('El acceso a la carpeta raíz ya declarada está bloqueado. Revisa los permisos del sitio en el navegador.');
+   }
+   await prepareRoot(root);
+   setStorageMessage('Árbol de carpetas comprobado. REGISTROS y todas las carpetas de fotografías están disponibles.','good');
+   $('saveBtn').disabled=false;render();return;
+  }
+  // Compatibilidad con instalaciones anteriores que guardaron directamente el handle REGISTROS.
+  const legacyDir=await dbSetting('registrosDir');
+  if(legacyDir&&legacyDir.name==='REGISTROS'){
+   const permission=await legacyDir.queryPermission({mode:'readwrite'});
+   if(permission==='granted'){
+    registrosDir=legacyDir;
+    await ensurePhotoFolders();
+    await migrateLegacyData();
+    await loadCatalogFromDisk();
+    setStorageMessage('Árbol de REGISTROS comprobado. Se ha recuperado el acceso anterior; la raíz ARMARIOS ELECTRICOS no está disponible en este perfil.','warn');
+    $('saveBtn').disabled=false;render();return;
+   }
+  }
+  setStorageMessage('No existe una carpeta raíz previamente declarada en este navegador. Abre la aplicación en el mismo navegador y perfil donde se autorizó ARMARIOS ELECTRICOS. No se ha solicitado seleccionar otra carpeta.','error');
+ }catch(e){
+  console.error(e);registrosDir=null;photosDir=null;
+  setStorageMessage('No se pudo comprobar o preparar el árbol de carpetas: '+(e.message||e),'error');
+ }
+}
+async function convertPhotoToJpeg(file){const bitmap=await createImageBitmap(file);const scale=Math.min(1,1920/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('No se pudo convertir la imagen')),'image/jpeg',0.88));}
+function renderPendingPhotos(){const box=$('photoPreview');box.innerHTML='';pendingPhotos.forEach((item,index)=>{const row=document.createElement('div');row.className='photo-preview';const img=document.createElement('img');img.src=URL.createObjectURL(item.file);img.onload=()=>URL.revokeObjectURL(img.src);const label=document.createElement('small');label.textContent=`Fotografía ${index+1} · ${item.tipo}`;const del=document.createElement('button');del.className='danger';del.textContent='Quitar';del.onclick=()=>{pendingPhotos.splice(index,1);renderPendingPhotos();};row.append(img,label,del);box.append(row);});}
+function confirmPhoto(file){return new Promise(resolve=>{const dialog=$('photoDialog'),preview=$('photoDialogPreview');if(photoDialogUrl)URL.revokeObjectURL(photoDialogUrl);photoDialogUrl=URL.createObjectURL(file);preview.src=photoDialogUrl;$('photoType').value='Ubicación';const cleanup=value=>{dialog.close();preview.removeAttribute('src');if(photoDialogUrl){URL.revokeObjectURL(photoDialogUrl);photoDialogUrl=null;}resolve(value);};$('acceptPhotoBtn').onclick=()=>cleanup($('photoType').value);$('cancelPhotoBtn').onclick=()=>cleanup(null);dialog.oncancel=e=>{e.preventDefault();cleanup(null);};dialog.showModal();});}
+function photoDescription(record){return (record.fotos||[]).map(name=>{const item=(record.tiposFotografias||[]).find(x=>x.nombre===name);return name+(item?' ('+item.tipo+')':'');}).join(', ');}
+function nextPhotoNumber(reference){let max=0;records.filter(r=>r.referencia===reference).forEach(r=>(r.fotos||[]).forEach(name=>{const m=name.match(/_(\d+)\.jpg$/i);if(m)max=Math.max(max,Number(m[1]));}));return max+1;}
+function render(){
+ $('count').textContent=records.length;
+ const q=$('filter').value.trim().toLowerCase();
+ const list=records.filter(r=>r.referencia.toLowerCase().includes(q)).slice().reverse();
+ $('records').innerHTML='';
+ if(!list.length){$('records').innerHTML='<div class="empty">'+(records.length?'No hay coincidencias.':'Todavía no hay registros.')+'</div>';return}
+ list.forEach(r=>{
+  const el=document.createElement('div');el.className='record';
+  const title=document.createElement('strong');title.textContent=r.referencia;
+  const floor=document.createElement('small');floor.textContent='Planta: '+(r.planta||'No indicada');
+  const oldRef=document.createElement('small');oldRef.textContent='Referencia antigua: '+(r.referenciaAntigua||'No indicada');
+  const time=document.createElement('small');time.textContent=new Date(r.timestamp).toLocaleString('es-ES');
+  const gps=document.createElement('small');gps.textContent=r.lat!=null?`${r.lat.toFixed(7)}, ${r.lon.toFixed(7)} · ±${Math.round(r.precision)} m`:'Sin GPS';
+  const row=document.createElement('div');row.className='row';
+  if(r.lat!=null){const a=document.createElement('a');a.href=`https://www.google.com/maps?q=${r.lat},${r.lon}`;a.target='_blank';a.rel='noopener';a.textContent='Ver en Google Maps';a.style.color='#176b9a';a.style.fontSize='13px';row.append(a)}
+  const del=document.createElement('button');del.className='danger';del.textContent='Eliminar';del.style.flex='0 0 auto';del.style.padding='7px 10px';del.onclick=async()=>{if(confirm('¿Eliminar el registro '+r.referencia+'?')){const previous=records;records=records.filter(x=>x.id!==r.id);try{await persist()}catch(e){records=previous;alert('No se pudo actualizar el archivo de registros. No se ha eliminado la ficha.');render();return;}for(const name of (r.fotos||[])){try{await removePhoto(name,r.referencia)}catch(e){console.warn('No se pudo eliminar la fotografía '+name,e)}}}};
+  row.append(del);el.append(title,floor,oldRef,time,gps);
+  if(r.observaciones){const o=document.createElement('small');o.textContent='Observaciones: '+r.observaciones;el.append(o)}
+  if(r.fotos?.length){const photos=document.createElement('small');photos.textContent='Fotografías: '+photoDescription(r);el.append(photos);r.fotos.forEach(name=>{const view=document.createElement('button');view.type='button';view.className='secondary';view.textContent='Ver '+name;view.style.padding='7px 10px';view.onclick=async()=>{try{const blob=await readPhoto(name,r.referencia);if(!blob){alert('No se encuentra la fotografía guardada.');return;}const img=document.createElement('img');img.alt=name;img.src=URL.createObjectURL(blob);img.style.cssText='display:block;max-width:100%;max-height:260px;object-fit:contain;border-radius:8px';img.onload=()=>URL.revokeObjectURL(img.src);el.append(img);}catch(e){alert('No se ha podido abrir la fotografía.');}};el.append(view);});}
+  el.append(row);$('records').append(el);
+ });
+}
+function setGpsMessage(msg,kind=''){const e=$('gpsStatus');e.textContent=msg;e.className='status '+kind}
+let gpsWatchId=null, gpsTimerId=null, gpsTickId=null, gpsStartedAt=0, gpsDurationMs=60000, bestGpsPosition=null;
+function stopGpsMeasurement(message, kind=''){
+ if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
+ if(gpsTimerId!==null){clearTimeout(gpsTimerId);gpsTimerId=null;}
+ if(gpsTickId!==null){clearInterval(gpsTickId);gpsTickId=null;}
+ $('gpsBtn').disabled=false;$('gpsBtn').textContent='◎ Iniciar medición GPS';
+ $('gpsStopBtn').disabled=true;
+ $('gpsDuration').disabled=false;
+ if(bestGpsPosition){
+  currentPosition=bestGpsPosition;
+  $('coords').textContent=`${currentPosition.lat.toFixed(7)}, ${currentPosition.lon.toFixed(7)}`;
+  $('accuracy').textContent=`Mejor precisión: ±${Math.round(currentPosition.precision)} m`;
+  setGpsMessage(message||'Medición finalizada. Se ha guardado la lectura más precisa.','good');
+ }else{
+  currentPosition=null;
+  $('accuracy').textContent='Precisión: sin medir';
+  setGpsMessage(message||'Medición finalizada sin obtener una posición GPS.','warn');
+ }
+}
+function getGps(){
+ if(gpsWatchId!==null)return;
+ if(!('geolocation' in navigator)){setGpsMessage('Este navegador no ofrece geolocalización.','warn');return;}
+ bestGpsPosition=null;currentPosition=null;
+ gpsDurationMs=Number($('gpsDuration').value)*1000;
+ gpsStartedAt=Date.now();
+ $('coords').textContent='Midiendo posición…';
+ $('accuracy').textContent='Buscando la mejor precisión…';
+ $('gpsBtn').disabled=true;$('gpsStopBtn').disabled=false;$('gpsDuration').disabled=true;
+ setGpsMessage(`Medición GPS iniciada: ${gpsDurationMs/1000} segundos. Mantén la aplicación abierta.`);
+ const updateCountdown=()=>{
+  const remaining=Math.max(0,Math.ceil((gpsDurationMs-(Date.now()-gpsStartedAt))/1000));
+  $('gpsBtn').textContent=`Midiendo GPS · ${remaining}s`;
+ };
+ updateCountdown();
+ gpsTickId=setInterval(updateCountdown,250);
+ gpsTimerId=setTimeout(()=>stopGpsMeasurement('Tiempo de medición completado. Se ha seleccionado la lectura GPS más precisa.','good'),gpsDurationMs);
+ try{
+  gpsWatchId=navigator.geolocation.watchPosition(pos=>{
+   const candidate={lat:pos.coords.latitude,lon:pos.coords.longitude,precision:pos.coords.accuracy};
+   if(!bestGpsPosition||candidate.precision<bestGpsPosition.precision){
+    bestGpsPosition=candidate;
+    $('coords').textContent=`${candidate.lat.toFixed(7)}, ${candidate.lon.toFixed(7)}`;
+    $('accuracy').textContent=`Mejor precisión obtenida: ±${Math.round(candidate.precision)} m`;
+   }
+  },err=>{
+   const messages={1:'Permiso de ubicación denegado. Activa el permiso para este sitio en Chrome.',2:'Temporalmente no se puede determinar la posición. La medición seguirá intentándolo.',3:'Se agotó el tiempo de espera de una lectura. La medición seguirá activa.'};
+   if(err.code===1)stopGpsMeasurement(messages[1],'warn');
+   else setGpsMessage(messages[err.code]||'Problema temporal al recibir una lectura GPS. Se seguirá intentando.','warn');
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+ }catch(err){stopGpsMeasurement('No se pudo iniciar la medición GPS. Comprueba los permisos y vuelve a intentarlo.','warn');}
+}
+$('gpsBtn').onclick=getGps;
+$('gpsStopBtn').onclick=()=>stopGpsMeasurement('Medición GPS detenida manualmente.');
+$('photoBtn').onclick=()=>$('photoInput').click();
+$('photoInput').onchange=async e=>{const files=Array.from(e.target.files||[]);e.target.value='';for(const file of files){if(!file.type.startsWith('image/'))continue;const tipo=await confirmPhoto(file);if(tipo)pendingPhotos.push({file,tipo});}renderPendingPhotos();};
+$('saveBtn').onclick=async()=>{ 
+ const n1=$('ref1').value.trim(),n2=$('ref2').value.trim();
+ const valid1=n1!==''&&Number.isInteger(Number(n1))&&Number(n1)>=0&&Number(n1)<=99;
+ const valid2=n2!==''&&Number.isInteger(Number(n2))&&Number(n2)>=0&&Number(n2)<=99;
+ if(!valid1||!valid2){alert('Introduce ambos números enteros entre 0 y 99.');(!valid1?$('ref1'):$('ref2')).focus();return}
+ const referencia=$('prefix').value+'-'+String(Number(n1)).padStart(2,'0')+'-'+String(Number(n2)).padStart(2,'0');
+ if(!currentPosition){if(!confirm('No hay posición GPS capturada. ¿Quieres guardar el registro sin coordenadas?'))return}
+ const duplicate=records.some(r=>r.referencia.toLowerCase()===referencia.toLowerCase());
+ if(duplicate&&!confirm('Ya existe un registro con esta referencia. ¿Quieres añadir otro registro igualmente?'))return;
+ const now=new Date();
+ if(!registrosDir){alert('El árbol de carpetas no está disponible. Comprueba el indicador de almacenamiento y los permisos del navegador.');return;}
+ const fotos=[];let photoNumber=nextPhotoNumber(referencia);
+ try{
+  const tiposFotografias=[];
+  for(const photo of pendingPhotos){
+   const name=`${referencia}_${String(photoNumber++).padStart(2,'0')}.jpg`;
+   const jpeg=await convertPhotoToJpeg(photo.file);
+   await storePhoto(name,jpeg,referencia);fotos.push(name);tiposFotografias.push({nombre:name,tipo:photo.tipo});
+  }
+  const record={id:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(now.getTime())+Math.random()),timestamp:now.toISOString(),fechaHora:now.toLocaleString('es-ES'),referencia,referenciaAntigua:$('oldRef').value.trim(),planta:$('floor').value,lat:currentPosition?.lat??null,lon:currentPosition?.lon??null,precision:currentPosition?.precision??null,observaciones:$('obs').value.trim(),fotos,tiposFotografias};
+  records.push(record);await persist();
+ }catch(error){
+  records=records.filter(r=>r.timestamp!==now.toISOString());
+  for(const name of fotos){try{await removePhoto(name,referencia)}catch(e){}}
+  console.error(error);alert('No se ha podido guardar completamente el registro o sus fotografías. No se ha confirmado el alta. Comprueba los permisos y el espacio disponible.');return;
+ }
+ pendingPhotos=[];renderPendingPhotos();$('ref1').value='';$('ref2').value='';$('oldRef').value='';$('obs').value='';currentPosition=null;$('coords').textContent='Sin posición GPS';$('accuracy').textContent='Precisión: sin medir';setGpsMessage('Registro y fotografías guardados en ARMARIOS ELECTRICOS/REGISTROS.','good');alert(`Armario ${referencia} registrado.`);window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+};
+$('filter').oninput=render;
+function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+function dateName(){return new Date().toISOString().slice(0,10)}
+function txtCell(v){return '"'+String(v??'').replace(/\r?\n/g,' ').replace(/"/g,'""')+'"'}
+function exportTXT(){
+ const headers=['Fecha y hora','Referencia','Referencia antigua','Planta','Latitud','Longitud','Precisión GPS (m)','Observaciones','Fotografías'];
+ const rows=records.map(r=>[r.fechaHora||r.timestamp,r.referencia,r.referenciaAntigua||'',r.planta||'',r.lat??'',r.lon??'',r.precision??'',r.observaciones||'',photoDescription(r)]);
+ const content='\ufeff'+[headers,...rows].map(row=>row.map(txtCell).join(';')).join('\r\n');
+ download(new Blob([content],{type:'text/plain;charset=utf-8'}),`Registro_armarios_${dateName()}.txt`);
+}
+$('txtBtn').onclick=exportTXT;
+// Generación XLSX autocontenida: paquete ZIP sin compresión y hojas XML compatibles con Excel.
+function crc32(bytes){let c=~0;for(let b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return (~c)>>>0}
+const enc=new TextEncoder();
+function u16(n){return [n&255,(n>>>8)&255]}function u32(n){return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]}
+function zip(files){
+ let local=[],central=[],offset=0;
+ for(const [name,content] of files){
+  const nb=enc.encode(name),data=enc.encode(content),crc=crc32(data);
+  const lh=[0x50,0x4b,3,4,...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(nb.length),...u16(0),...nb,...data];
+  local.push(...lh);
+  const ch=[0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(nb.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...nb];
+  central.push(...ch);offset+=lh.length;
+ }
+ const start=local.length, end=[0x50,0x4b,5,6,...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(central.length),...u32(start),...u16(0)];
+ return new Uint8Array([...local,...central,...end]);
+}
+function xmlEscape(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
+function colName(n){let s='';while(n){let r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s}
+function worksheet(rows){
+ const sheetRows=rows.map((row,i)=>'<row r="'+(i+1)+'">'+row.map((v,j)=>{
+  const ref=colName(j+1)+(i+1);
+  if(typeof v==='number'&&Number.isFinite(v))return `<c r="${ref}"><v>${v}</v></c>`;
+  return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(v)}</t></is></c>`;
+ }).join('')+'</row>').join('');
+ return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData><autoFilter ref="A1:I${Math.max(1,rows.length)}"/></worksheet>`;
+}
+function exportXLSX(){
+ const rows=[['Fecha y hora','Referencia','Referencia antigua','Planta','Latitud','Longitud','Precisión GPS (m)','Observaciones','Fotografías'],
+ ...records.map(r=>[r.fechaHora,r.referencia,r.referenciaAntigua||'',r.planta||'',r.lat??'',r.lon??'',r.precision??'',r.observaciones,photoDescription(r)])];
+ const files=[
+ ['[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`],
+ ['_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+ ['xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Registros" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+ ['xl/_rels/workbook.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`],
+ ['xl/worksheets/sheet1.xml',worksheet(rows)]
+ ];
+ download(new Blob([zip(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`Registro_armarios_${dateName()}.xlsx`);
+}
+$('exportBtn').onclick=exportXLSX;
+render();
+
+// Catálogo TXT: columna 1 = referencia actual; columna 2 = observaciones; columna 3 = referencia antigua.
+let observationCatalog = new Map();
+let catalogRows = [];
+let catalogVersion = '1.0';
+let catalogEditedAt = new Date().toLocaleDateString('es-ES');
+function normalizeReference(value){
+ return String(value||'').trim().toUpperCase().replace(/\s+/g,'');
+}
+function buildReference(){
+ const a=$('ref1').value.trim(),b=$('ref2').value.trim();
+ if(a===''||b===''||!Number.isInteger(Number(a))||!Number.isInteger(Number(b))||Number(a)<0||Number(a)>99||Number(b)<0||Number(b)>99)return '';
+ return $('prefix').value+'-'+String(Number(a)).padStart(2,'0')+'-'+String(Number(b)).padStart(2,'0');
+}
+function refreshObservation(){
+ const ref=buildReference();
+ if(!ref){$('obs').value='';return;}
+ const entry=observationCatalog.get(normalizeReference(ref));
+ if(entry!==undefined){
+  $('obs').value=entry.observacion;
+  $('oldRef').value=entry.referenciaAntigua||'';
+  $('catalogStatus').textContent='Referencia encontrada: '+ref;
+  $('catalogStatus').className='status good';
+ }else if(observationCatalog.size){
+  $('obs').value='';
+  $('oldRef').value='';
+  $('catalogStatus').textContent='Referencia no encontrada en el TXT';
+  $('catalogStatus').className='status warn';
+ }
+}
+function renderOldReferenceSearch(){
+ const query=normalizeReference($('oldRef').value);
+ const container=$('oldRefResults');
+ container.innerHTML='';
+ if(!catalogRows.length){container.innerHTML='<div class="empty">Carga primero el catálogo TXT.</div>';return;}
+ if(!query){container.innerHTML='';return;}
+ const matches=catalogRows.filter(row=>normalizeReference(row.referenciaAntigua).includes(query));
+ if(!matches.length){container.innerHTML='<div class="empty">No se encontraron coincidencias.</div>';return;}
+ const heading=document.createElement('div');heading.className='muted';heading.textContent=`${matches.length} coincidencia(s) encontrada(s)`;container.append(heading);
+ matches.forEach(row=>{
+  const item=document.createElement('div');item.className='record';
+  const current=document.createElement('strong');current.textContent=row.referenciaActual||'(Sin referencia actual)';
+  const old=document.createElement('small');old.textContent='Referencia antigua: '+row.referenciaAntigua;
+  item.append(current,old);
+  if(row.observacion){const note=document.createElement('small');note.textContent='Observaciones: '+row.observacion;item.append(note);}
+  const choose=document.createElement('button');choose.type='button';choose.className='secondary';choose.textContent='Seleccionar referencia';choose.onclick=()=>selectCatalogRow(row);item.append(choose);
+  container.append(item);
+ });
+}
+function clearOldReferenceSearch(){
+ $('oldRef').value='';
+ $('oldRefResults').innerHTML='';
+ $('obs').value='';
+ if(catalogRows.length){$('catalogStatus').textContent=`Catálogo recuperado: ${catalogRows.length} filas`;$('catalogStatus').className='status good';}
+}
+function onNewReferenceEdited(){
+ clearOldReferenceSearch();
+ refreshObservation();
+}
+$('prefix').addEventListener('change',onNewReferenceEdited);
+$('ref1').addEventListener('input',onNewReferenceEdited);
+$('ref2').addEventListener('input',onNewReferenceEdited);
+$('catalogBtn').onclick=()=>$('catalogFile').click();
+$('oldRef').addEventListener('input',renderOldReferenceSearch);
+function selectCatalogRow(row){
+ const match=String(row.referenciaActual||'').trim().match(/^([A-Z0-9]+)-(\d{1,2})-(\d{1,2})$/i);
+ if(match){$('prefix').value=match[1].toUpperCase();$('ref1').value=Number(match[2]);$('ref2').value=Number(match[3]);}
+ $('oldRef').value=row.referenciaAntigua||'';
+ $('obs').value=row.observacion||'';
+ $('oldRefResults').innerHTML='';
+ $('catalogStatus').textContent='Referencia seleccionada: '+row.referenciaActual;
+ $('catalogStatus').className='status good';
+}
+$('catalogFile').onchange=async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{
+  const parsed=parseCatalogText(await file.text());
+  const rows=parsed.rows;
+  if(!rows.length){alert('No se encontraron filas válidas. El TXT debe contener una cabecera de tres columnas y, desde la tercera línea, los datos separados por tabuladores.');return;}
+  catalogRows=rows;catalogVersion=parsed.version;catalogEditedAt=new Date().toLocaleDateString('es-ES');
+  observationCatalog=new Map();
+  rows.forEach(row=>{const key=normalizeReference(row.referenciaActual);if(key&&!observationCatalog.has(key))observationCatalog.set(key,{observacion:row.observacion,referenciaAntigua:row.referenciaAntigua});});
+  try{localStorage.setItem('armarios_gps_catalog_v1',JSON.stringify(catalogRows));}catch(storageError){}
+  if(registrosDir){try{await saveCatalogCopy();}catch(saveCatalogError){setStorageMessage('Catálogo cargado, pero no se pudo copiar a REGISTROS: '+saveCatalogError.message,'warn');}}
+  $('catalogStatus').textContent=`Catálogo cargado: ${rows.length} filas · versión ${catalogVersion}`;
+  $('catalogStatus').className='status good';
+  refreshObservation();renderOldReferenceSearch();
+ }catch(err){alert('No se pudo leer el archivo TXT.');}
+ e.target.value='';
+};
+// Recuperar el catálogo en este dispositivo si ya se había cargado anteriormente.
+try{
+ const savedCatalog=JSON.parse(localStorage.getItem('armarios_gps_catalog_v1')||'[]');
+ if(Array.isArray(savedCatalog)&&savedCatalog.length){catalogRows=savedCatalog;catalogRows.forEach(row=>{const key=normalizeReference(row.referenciaActual);if(key&&!observationCatalog.has(key))observationCatalog.set(key,{observacion:row.observacion||'',referenciaAntigua:row.referenciaAntigua||''});});$('catalogStatus').textContent=`Catálogo recuperado: ${catalogRows.length} filas`;$('catalogStatus').className='status good';}
+}catch(e){}
+$('updatedAt').textContent='Versión 3.4 · Actualizado: 19/11/2026 10:28'; // Fecha fija de publicación de esta compilación; no cambia al abrir la aplicación.
+restoreFolder();
+</script>
+</body>
+</html>
