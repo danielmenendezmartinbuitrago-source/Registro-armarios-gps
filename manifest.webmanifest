@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Registro de armarios eléctricos",
   "short_name": "Registro Armarios",
-  "description": "Captura de referencia, fecha, hora y posición GPS de armarios eléctricos. Versión 3.0.",
+  "description": "Captura de referencia, fecha, hora y posición GPS de armarios eléctricos. Versión 3.1.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",

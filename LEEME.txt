@@ -1,39 +1,54 @@
-REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 3.0 · 18/11/2026
+REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 3.1 · 19/11/2026
 
 IDENTIFICACION DE VERSION
-La aplicacion muestra la version 3.0 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v3.0.
+La aplicacion muestra la version 3.1 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v3.1.
 
 CONTENIDO
-- index.html: aplicacion principal, version 3.0.
+- index.html: aplicacion principal, version 3.1.
 - manifest.webmanifest: configuracion de instalacion PWA.
-- sw.js: Service Worker y cache de la version 3.0.
+- sw.js: Service Worker y cache de la version 3.1.
 - icon-192.png e icon-512.png: iconos de la aplicacion.
-- .nojekyll: evita el procesamiento de GitHub Pages con Jekyll.
-- modArmarios.bas: modulo VBA de escritorio.
-- LEEME_INTEGRACION.txt: instrucciones de integracion de escritorio.
+- modArmarios.bas: modulo VBA de escritorio (sin cambios en esta entrega).
+- LEEME_INTEGRACION.txt: instrucciones de integracion de escritorio (sin cambios en esta entrega).
+
+CAMBIOS DE LA VERSION 3.1
+- Se elimina de la aplicacion cualquier control o funcion de reconocimiento/entrada por voz. No se utiliza Web Speech API. El microfono que pueda mostrar Gboard u otro teclado Android es una funcion del propio teclado y no puede ocultarse desde una pagina web.
+- Al escribir una referencia actual, se completa automaticamente su referencia antigua asociada y la observacion del catalogo.
+- F41 forma parte del selector y de la lista de prefijos para fotografias.
+- El TXT del catalogo tiene primera linea con version y fecha de edicion, segunda linea con cabecera TAB y datos desde la tercera linea. Se admiten catalogos anteriores sin metadatos para facilitar la migracion.
+- La aplicacion solicita seleccionar la carpeta raiz ARMARIOS ELECTRICOS y crea automaticamente REGISTROS, REGISTRO_ARMARIOS.json, CATALOGO_ARMARIOS.txt y FOTOGRAFIAS con todas las subcarpetas de prefijo.
+- Se elimina la declaracion duplicada de persist(): los registros se escriben en REGISTRO_ARMARIOS.json, no solo en localStorage.
+- Se recuperan registros y catalogo de la carpeta seleccionada al volver a abrir la aplicacion. Se conserva compatibilidad con la carpeta REGISTROS seleccionada en la version 3.0.
+
+ESTRUCTURA CREADA AUTOMATICAMENTE
+ARMARIOS ELECTRICOS/
+  REGISTROS/
+    REGISTRO_ARMARIOS.json
+    CATALOGO_ARMARIOS.txt
+    FOTOGRAFIAS/
+      F01/ F02/ F03/ F03B/ F04/ F04B/ F05/ F06/ F07/ F08/ F09/ F10/
+      F11/ F12/ F13/ F14/ F15/ F16/ F16B/ F17/ F18/ F19/ F19B/ F20/ F41/ AMR/
 
 FUNCIONES
 - Alta de armarios con referencia PREFIJO-XX-XX.
-- Campos numericos compactos y selector de prefijo mas ancho.
+- Campos numericos compactos y selector de prefijo.
 - Medicion GPS seleccionable de 30, 60, 90 o 120 segundos, conservando la lectura de mayor precision.
 - Detencion manual de la medicion y avisos de estado.
-- Catalogo TXT de tres columnas separadas por TAB: referencia actual, observacion y referencia antigua.
-- Busqueda parcial de referencia antigua en la tercera columna. Se han eliminado todos los controles y funciones de entrada por audio.
-- Seleccion de resultado para recuperar la referencia actual y sus observaciones.
-- Captura de varias fotografias por armario, guardadas como archivos JPEG en REGISTROS/FOTOGRAFIAS/[PREFIJO]/ con nombres correlativos.
-- Creacion automatica de las 26 subcarpetas: F01, F02, F03, F03B, F04, F04B, F05, F06, F07, F08, F09, F10, F11, F12, F13, F14, F15, F16, F16B, F17, F18, F19, F19B, F20, F41 y AMR.
+- Catalogo TXT de tres columnas separadas por TAB: referencia actual, observacion y referencia antigua, precedidas por linea de version/fecha y cabecera.
+- Busqueda parcial de referencia antigua y recuperacion de referencia actual/observaciones.
+- Captura de varias fotografias por armario, guardadas como JPEG en REGISTROS/FOTOGRAFIAS/[PREFIJO]/ con nombres correlativos.
 - Registros guardados en REGISTRO_ARMARIOS.json y copia del catalogo en CATALOGO_ARMARIOS.txt dentro de REGISTROS.
-- Migracion inicial de registros y fotografias antiguos desde localStorage/IndexedDB, si existen.
 - Exportacion Excel (.xlsx) y TXT delimitado por punto y coma (;), con una fila por registro.
 - Listado local de registros, filtro por referencia y enlace a Google Maps.
 
 DATOS Y PRIVACIDAD
-Los registros, el catalogo y las fotografias se guardan en la carpeta REGISTROS seleccionada por el usuario. La aplicacion utiliza File System Access API; Chrome puede solicitar permiso de nuevo al abrirla. No se envian a GitHub ni a un servidor y no se sincronizan entre dispositivos. La exportacion TXT y Excel incluye los nombres de las fotografias, pero no incorpora los archivos de imagen.
+Los registros, el catalogo y las fotografias se guardan en la carpeta local seleccionada por el usuario. La aplicacion utiliza File System Access API; Chrome puede solicitar permiso de nuevo al abrirla. No se envian a GitHub ni a un servidor y no se sincronizan entre dispositivos. La exportacion TXT y Excel incluye los nombres de las fotografias, pero no incorpora los archivos de imagen.
+
+REQUISITOS
+La seleccion de carpetas requiere un navegador Chromium compatible y HTTPS (o localhost). En Android, utiliza una version actualizada de Chrome que admita File System Access API.
 
 PUBLICACION EN GITHUB PAGES
 1. Sube el contenido de esta carpeta a la raiz del repositorio, no la carpeta contenedora.
 2. En GitHub abre Settings > Pages.
 3. Selecciona Deploy from a branch, rama main y carpeta /(root).
 4. Activa HTTPS si no esta activado automaticamente.
-
-La geolocalizacion requiere HTTPS (o localhost) y permiso de ubicacion. La seleccion de carpetas requiere Chrome/Chromium compatible (Chrome 132 o posterior en Android) y HTTPS. La primera carga necesita conexion para descargar los recursos de la PWA.

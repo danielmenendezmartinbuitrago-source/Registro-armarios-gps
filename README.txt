@@ -1,4 +1,1 @@
-REGISTRO DE ARMARIOS ELECTRICOS GPS
-VERSION 2.8
-Actualizacion: 18/11/2026
-Consulta LEEME.txt para funciones, instalacion, publicacion en GitHub Pages y conservacion de datos.
+Registro de armarios eléctricos GPS · Versión 3.1. Consulta LEEME.txt para instalación y funcionamiento.
