@@ -1,1 +1,1 @@
-Registro de armarios eléctricos GPS · Versión 3.1. Consulta LEEME.txt para instalación y funcionamiento.
+Registro de armarios eléctricos GPS · Versión 3.2. Consulta LEEME.txt para instalación y funcionamiento.

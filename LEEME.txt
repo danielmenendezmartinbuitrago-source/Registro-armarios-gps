@@ -1,17 +1,17 @@
-REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 3.1 · 19/11/2026
+REGISTRO DE ARMARIOS ELECTRICOS GPS · VERSION 3.3 · 19/11/2026
 
 IDENTIFICACION DE VERSION
-La aplicacion muestra la version 3.1 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v3.1.
+La aplicacion muestra la version 3.3 en la cabecera y en el pie. El Service Worker utiliza la cache registro-armarios-gps-v3.3.
 
 CONTENIDO
-- index.html: aplicacion principal, version 3.1.
+- index.html: aplicacion principal, version 3.3.
 - manifest.webmanifest: configuracion de instalacion PWA.
-- sw.js: Service Worker y cache de la version 3.1.
+- sw.js: Service Worker y cache de la version 3.3.
 - icon-192.png e icon-512.png: iconos de la aplicacion.
 - modArmarios.bas: modulo VBA de escritorio (sin cambios en esta entrega).
 - LEEME_INTEGRACION.txt: instrucciones de integracion de escritorio (sin cambios en esta entrega).
 
-CAMBIOS DE LA VERSION 3.1
+CAMBIOS DE LA VERSION 3.2
 - Se elimina de la aplicacion cualquier control o funcion de reconocimiento/entrada por voz. No se utiliza Web Speech API. El microfono que pueda mostrar Gboard u otro teclado Android es una funcion del propio teclado y no puede ocultarse desde una pagina web.
 - Al escribir una referencia actual, se completa automaticamente su referencia antigua asociada y la observacion del catalogo.
 - F41 forma parte del selector y de la lista de prefijos para fotografias.
@@ -52,3 +52,17 @@ PUBLICACION EN GITHUB PAGES
 2. En GitHub abre Settings > Pages.
 3. Selecciona Deploy from a branch, rama main y carpeta /(root).
 4. Activa HTTPS si no esta activado automaticamente.
+
+
+CAMBIOS DE LA VERSION 3.2
+- Tras seleccionar o capturar cada fotografía, se abre una ventana de confirmación con previsualización.
+- El usuario puede clasificarla como Ubicación, Interior o Documentación.
+- Aceptar incorpora la fotografía a la lista pendiente; Cancelar foto descarta únicamente esa captura.
+- El tipo queda asociado al nombre de la fotografía en el campo tiposFotografias del registro JSON.
+- La clasificación se muestra en la ficha y se incluye en las exportaciones TXT y Excel.
+- Se mantiene la compatibilidad con registros anteriores que no tienen clasificación fotográfica.
+
+
+CAMBIOS DE LA VERSION 3.3
+- Al pulsar REGISTRAR ARMARIO, y solo despues de guardar correctamente el registro y sus fotografias, aparece una confirmacion con la referencia: «Armario [REFERENCIA] registrado.»
+- Si se produce un error durante el guardado, se muestra el aviso de error y no aparece la confirmacion de alta.
